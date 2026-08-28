@@ -1,0 +1,14 @@
+{
+  "name": "cossim-bmpm",
+  "version": "1.0.0",
+  "description": "COSSIM (régulation / CTA-INTER) pour le BMPM — Netlify + Neon",
+  "private": true,
+  "scripts": {
+    "hash": "node db/hash-password.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.3"
+  }
+}
