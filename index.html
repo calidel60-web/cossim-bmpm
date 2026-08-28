@@ -1069,7 +1069,10 @@ async function enterApp(){
   document.getElementById("btnGoPlanningCard").classList.toggle("hidden", !canEdit());
 
   try{
-    const [g, s, f, c] = await Promise.all([api("/grades"), api("/services"), api("/fonctions"), api("/statut-couleurs")]);
+    const [g, s, f, c] = await Promise.all([
+      api("/reference?type=grades"), api("/reference?type=services"),
+      api("/reference?type=fonctions"), api("/reference?type=statut-couleurs"),
+    ]);
     state.grades = g.grades;
     state.services = s.services;
     state.fonctions = f.fonctions;
@@ -1458,7 +1461,7 @@ function initAdresseAutocomplete(){
     lastQuery = q;
     timer = setTimeout(async () => {
       try {
-        const data = await api("/rues?q=" + encodeURIComponent(q));
+        const data = await api("/reference?type=rues&q=" + encodeURIComponent(q));
         render(data.rues || []);
       } catch (err) {
         console.warn("Autocomplétion rues:", err);
@@ -1492,7 +1495,7 @@ function renderServices(prevenus){
         // Les informations saisies peuvent ne pas encore être enregistrées.
         // On les sauvegarde avant de recharger l'intervention après le "Prévenir".
         await saveInterventionFields(false);
-        await api("/intervention-services", { method: "POST", body: {
+        await api("/intervention-sub?resource=services", { method: "POST", body: {
           intervention_id: state.currentInterventionId, service_id
         }});
         await loadIntervention();
@@ -1586,7 +1589,7 @@ document.getElementById("btnDiffuser").addEventListener("click", async () => {
   }
   try{
     for (const engin_id of selectedEnginsForInter){
-      await api("/intervention-engins", { method: "POST", body: {
+      await api("/intervention-sub?resource=engins", { method: "POST", body: {
         intervention_id: state.currentInterventionId, engin_id
       }});
     }
@@ -1626,7 +1629,7 @@ function renderMoyens(moyens, editable){
   document.querySelectorAll(".etat-select").forEach(sel => {
     sel.addEventListener("change", async () => {
       try{
-        await api("/intervention-engins", { method: "PUT", body: { id: Number(sel.dataset.id), etat: sel.value }});
+        await api("/intervention-sub?resource=engins", { method: "PUT", body: { id: Number(sel.dataset.id), etat: sel.value }});
         await loadIntervention();
       }catch(err){ toast(err.message, true); }
     });
@@ -1634,7 +1637,7 @@ function renderMoyens(moyens, editable){
   document.querySelectorAll(".moyen-remove").forEach(btn => {
     btn.addEventListener("click", async () => {
       try{
-        await api("/intervention-engins?id=" + btn.dataset.id, { method: "DELETE" });
+        await api("/intervention-sub?resource=engins&id=" + btn.dataset.id, { method: "DELETE" });
         await loadIntervention();
       }catch(err){ toast(err.message, true); }
     });
@@ -1683,7 +1686,7 @@ async function loadHistorique(interventionId){
   try{
     const [interData, msgData] = await Promise.all([
       api(`/interventions?id=${interventionId}`),
-      api(`/intervention-messages?intervention_id=${interventionId}`),
+      api(`/intervention-sub?resource=messages&intervention_id=${interventionId}`),
     ]);
     const inter = interData.intervention;
     const moyens = interData.moyens || [];
@@ -1735,7 +1738,7 @@ async function loadHistorique(interventionId){
         const texte = document.getElementById("histoMessageInput").value.trim();
         if (!texte) return;
         try{
-          await api("/intervention-messages", { method: "POST", body: {
+          await api("/intervention-sub?resource=messages", { method: "POST", body: {
             intervention_id: interventionId,
             contenu: `${engin} - ${texte.toUpperCase()}`,
           }});
@@ -1758,7 +1761,7 @@ async function loadHistorique(interventionId){
    SYNOPTIQUE DES ENGINS (consultation ou édition selon le rôle)
    ============================================================ */
 async function loadSynoptique(){
-  const [data, colorsData] = await Promise.all([api("/engins"), api("/statut-couleurs")]);
+  const [data, colorsData] = await Promise.all([api("/engins"), api("/reference?type=statut-couleurs")]);
   state.engins = data.engins;
   state.statutColors = { ...DEFAULT_STATUT_COLORS, ...colorsData.colors };
   const editable = canEdit();
@@ -1839,7 +1842,7 @@ document.getElementById("btnSaveStatutColors").addEventListener("click", async (
   const colors = {};
   document.querySelectorAll(".statut-color-input").forEach(inp => { colors[inp.dataset.code] = inp.value; });
   try{
-    await api("/statut-couleurs", { method: "PUT", body: { colors } });
+    await api("/reference?type=statut-couleurs", { method: "PUT", body: { colors } });
     toast("Couleurs enregistrées.");
     await loadSynoptique();
   }catch(err){ toast(err.message, true); }
@@ -1892,8 +1895,8 @@ async function loadPlanning(){
 async function renderPlanning(){
   const editable = canEdit();
   const [data, armedData] = await Promise.all([
-    api("/planning?date=" + encodeURIComponent(state.planningDate)),
-    api("/planning-engins?date=" + encodeURIComponent(state.planningDate)),
+    api("/planning?resource=gardes&date=" + encodeURIComponent(state.planningDate)),
+    api("/planning?resource=engins-jour&date=" + encodeURIComponent(state.planningDate)),
   ]);
   const affectMap = {};
   data.affectations.forEach(a => { affectMap[a.engin_id + ":" + a.poste_code] = a; });
@@ -1954,7 +1957,7 @@ async function renderPlanning(){
         const poste_code = sel.dataset.poste;
         const personnel_id = sel.value ? Number(sel.value) : null;
         try{
-          await api("/planning", { method: "PUT", body: {
+          await api("/planning?resource=gardes", { method: "PUT", body: {
             date: state.planningDate, engin_id, poste_code, personnel_id
           }});
           sel.classList.toggle("filled", !!personnel_id);
@@ -1966,7 +1969,7 @@ async function renderPlanning(){
       btn.addEventListener("click", async () => {
         if (!confirm("Retirer ce véhicule de la garde du " + state.planningDate + " ? Ses affectations de poste pour ce jour seront supprimées.")) return;
         try{
-          await api("/planning-engins?date=" + encodeURIComponent(state.planningDate) + "&engin_id=" + btn.dataset.id, { method: "DELETE" });
+          await api("/planning?resource=engins-jour&date=" + encodeURIComponent(state.planningDate) + "&engin_id=" + btn.dataset.id, { method: "DELETE" });
           toast("Véhicule retiré de la garde.");
           await renderPlanning();
         }catch(err){ toast(err.message, true); }
@@ -1980,7 +1983,7 @@ document.getElementById("btnPlanningAddEngin").addEventListener("click", async (
   const engin_id = Number(select.value);
   if (!engin_id) return;
   try{
-    await api("/planning-engins", { method: "POST", body: { date: state.planningDate, engin_id } });
+    await api("/planning?resource=engins-jour", { method: "POST", body: { date: state.planningDate, engin_id } });
     toast("Véhicule armé pour cette garde.");
     await renderPlanning();
   }catch(err){ toast(err.message, true); }
@@ -1991,7 +1994,7 @@ document.getElementById("btnPlanningAddEngin").addEventListener("click", async (
    ============================================================ */
 async function loadPersonnel(){
   if (!isAdmin()) { await showScreen("menu"); return; }
-  const [pers, gr, fo] = await Promise.all([api("/personnel"), api("/grades"), api("/fonctions")]);
+  const [pers, gr, fo] = await Promise.all([api("/personnel"), api("/reference?type=grades"), api("/reference?type=fonctions")]);
   state.grades = gr.grades;
   state.fonctions = fo.fonctions;
   renderPersonnelTable(pers.personnel);
@@ -2015,7 +2018,7 @@ function renderFonctions(){
   document.querySelectorAll(".fonc-seuil-select").forEach(sel => {
     sel.addEventListener("change", async () => {
       try{
-        await api("/fonctions", { method: "PUT", body: { id: Number(sel.dataset.id), seuil_grade_code: sel.value || "" } });
+        await api("/reference?type=fonctions", { method: "PUT", body: { id: Number(sel.dataset.id), seuil_grade_code: sel.value || "" } });
         toast("Grade seuil mis à jour.");
         await loadPersonnel();
       }catch(err){ toast(err.message, true); }
@@ -2124,7 +2127,7 @@ function renderGrades(){
   document.querySelectorAll(".grade-delete").forEach(btn => {
     btn.addEventListener("click", async () => {
       try{
-        await api("/grades?code=" + encodeURIComponent(btn.dataset.code), { method: "DELETE" });
+        await api("/reference?type=grades&code=" + encodeURIComponent(btn.dataset.code), { method: "DELETE" });
         await loadPersonnel();
       }catch(err){ toast(err.message, true); }
     });
@@ -2137,7 +2140,7 @@ document.getElementById("addGradeForm").addEventListener("submit", async (e) => 
   const libelle = document.getElementById("newGradeLibelle").value.trim();
   if (!code || !libelle) return;
   try{
-    await api("/grades", { method: "POST", body: { code, libelle } });
+    await api("/reference?type=grades", { method: "POST", body: { code, libelle } });
     document.getElementById("addGradeForm").reset();
     await loadPersonnel();
     toast("Grade ajouté.");
