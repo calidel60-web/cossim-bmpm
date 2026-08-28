@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COSSIM — BMPM</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%230A1929%22/><text x=%2250%22 y=%2266%22 font-size=%2258%22 text-anchor=%22middle%22 fill=%22%23D8A438%22 font-family=%22sans-serif%22>C</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS — thème "salle de commandement" : navy quasi-noir,
+   accent or (blason BMPM), rouge réservé aux états d'alerte.
+   Chiffres/codes en monospace pour un rendu radio/régulation.
+   ============================================================ */
+:root{
+  --bg:#0A1929;
+  --panel:#10233A;
+  --panel-2:#16304C;
+  --line:#24425E;
+  --ink:#EAF2F8;
+  --muted:#7E97AF;
+  --gold:#D8A438;
+  --gold-soft:rgba(216,164,56,0.14);
+  --red:#E6484F;
+  --red-soft:rgba(230,72,79,0.16);
+  --green:#35D398;
+  --green-soft:rgba(53,211,152,0.14);
+  --amber:#F2A93C;
+  --amber-soft:rgba(242,169,60,0.14);
+  --font-body:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-body);background:var(--bg);color:var(--ink);}
+button,input,select,textarea{font-family:inherit;}
+::selection{background:var(--gold-soft);}
+
+/* ===== Connexion ===== */
+.auth-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(circle at 30% 20%, #123049 0%, #0A1929 65%);}
+.auth-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:32px 28px 26px 28px;box-shadow:0 20px 50px rgba(0,0,0,0.45);}
+.auth-badge{width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px auto;}
+.auth-badge img{width:100%;height:100%;object-fit:contain;}
+.auth-title{text-align:center;font-family:var(--font-mono);font-size:10.5px;letter-spacing:2px;color:var(--gold);
+  text-transform:uppercase;font-weight:700;margin-bottom:4px;}
+.auth-subtitle{text-align:center;font-size:18px;font-weight:800;color:#fff;margin-bottom:24px;}
+.auth-field{margin-bottom:14px;}
+.auth-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:0.5px;margin-bottom:6px;}
+.auth-field input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);font-size:15px;
+  background:var(--panel-2);color:var(--ink);}
+.auth-field input:focus{outline:none;border-color:var(--gold);}
+.auth-error{background:var(--red-soft);color:#FF9498;border-radius:10px;padding:9px 12px;font-size:12.5px;
+  font-weight:600;margin-bottom:14px;text-align:center;}
+.auth-submit{width:100%;padding:13px;border:none;border-radius:10px;background:var(--gold);color:#1A1206;
+  font-weight:800;font-size:14px;letter-spacing:0.3px;cursor:pointer;margin-top:4px;}
+.auth-submit:hover{background:#E8B650;}
+.auth-hint{text-align:center;font-size:11.5px;color:var(--muted);margin-top:18px;line-height:1.5;}
+
+/* ===== Topbar ===== */
+.topbar{background:var(--panel);border-bottom:2px solid var(--gold);color:#fff;padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+.tb-brand{display:flex;align-items:center;gap:10px;}
+.tb-badge{width:32px;height:32px;}
+.tb-badge img{width:100%;height:100%;object-fit:contain;}
+.tb-text .t1{font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--gold);
+  text-transform:uppercase;font-weight:700;}
+.tb-text .t2{font-size:15px;font-weight:800;}
+.tb-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tb-btn{background:transparent;border:1px solid var(--line);color:var(--muted);padding:8px 13px;border-radius:8px;
+  font-size:12.5px;font-weight:700;cursor:pointer;}
+.tb-btn:hover{border-color:var(--gold);color:#fff;}
+.tb-btn.active{background:var(--gold-soft);border-color:var(--gold);color:var(--gold);}
+.tb-user{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-left:6px;}
+.tb-logout{background:transparent;border:none;color:#FF9498;font-size:12px;font-weight:700;cursor:pointer;
+  text-decoration:underline;}
+
+.shell{max-width:1180px;margin:0 auto;padding:22px 20px 60px 20px;}
+.shell-wide{max-width:1600px;}
+.hidden{display:none !important;}
+
+/* ===== Panels ===== */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:18px;}
+.card-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);
+  padding-bottom:12px;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.card-title{font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--gold);letter-spacing:1.2px;
+  text-transform:uppercase;}
+.badge-count{background:var(--panel-2);color:var(--muted);font-family:var(--font-mono);font-size:11px;
+  font-weight:700;letter-spacing:0.4px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);}
+
+/* ===== Boutons ===== */
+.btn{border:none;border-radius:9px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-primary{background:var(--gold);color:#1A1206;}
+.btn-primary:hover{background:#E8B650;}
+.btn-secondary{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);}
+.btn-secondary:hover{border-color:var(--gold);}
+.btn-danger{background:var(--red-soft);color:#FF9498;}
+.btn-danger:hover{background:rgba(230,72,79,0.28);}
+.btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;}
+
+/* ===== Menu / accueil ===== */
+.menu-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:640px){.menu-grid{grid-template-columns:1fr 1fr 1fr 1fr;}}
+.menu-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 16px;text-align:left;
+  cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:border-color .15s,transform .15s;}
+.menu-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.menu-card .icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.menu-card.c1 .icon{background:var(--red-soft);}
+.menu-card.c2 .icon{background:var(--gold-soft);}
+.menu-card.c3 .icon{background:var(--green-soft);}
+.menu-card.c4 .icon{background:var(--amber-soft);}
+.menu-card .title{font-size:13.5px;font-weight:800;}
+.menu-card .desc{font-size:11.5px;color:var(--muted);line-height:1.5;}
+
+/* ===== Liste interventions (historique) ===== */
+.inter-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 4px;
+  border-bottom:1px solid var(--line);cursor:pointer;}
+.inter-row:last-child{border-bottom:none;}
+.inter-row:hover{background:var(--panel-2);}
+.inter-main{display:flex;flex-direction:column;gap:2px;}
+.inter-id{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold);}
+.inter-sub{font-size:12px;color:var(--muted);}
+.pill{font-size:10px;font-weight:800;letter-spacing:0.4px;padding:4px 9px;border-radius:999px;text-transform:uppercase;}
+.pill.en_cours{background:var(--amber-soft);color:var(--amber);}
+.pill.cloturee{background:var(--green-soft);color:var(--green);}
+.empty-note{color:var(--muted);font-size:13px;padding:14px 4px;}
+
+/* ===== SYNOPTIQUE DES INTERVENTIONS (board temps réel) ===== */
+.board-grid{display:flex;flex-direction:column;gap:14px;}
+.board-card{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--green);
+  border-radius:12px;padding:16px 18px;cursor:pointer;transition:transform .12s,border-color .12s;}
+.board-card:hover{transform:translateY(-2px);}
+.board-card.age-warn{border-left-color:var(--amber);}
+.board-card.age-alert{border-left-color:var(--red);}
+.board-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+.board-id{font-family:var(--font-mono);font-size:15px;font-weight:800;color:#fff;}
+.board-timer{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--muted);}
+.board-card.age-warn .board-timer{color:var(--amber);}
+.board-card.age-alert .board-timer{color:var(--red);}
+.board-sinistre{font-size:14px;font-weight:700;margin-bottom:4px;}
+.board-commune{font-size:12px;color:var(--muted);margin-bottom:12px;}
+.board-foot{display:flex;align-items:center;justify-content:space-between;}
+.board-moyens{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);
+  display:flex;align-items:center;gap:6px;}
+.board-moyens .dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.board-empty{grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--muted);}
+.board-empty .big{font-size:34px;margin-bottom:8px;}
+
+/* ===== Détail intervention : tabs ===== */
+.inter-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.inter-title{font-family:var(--font-mono);font-size:19px;font-weight:800;color:#fff;}
+.inter-title .num{color:var(--gold);}
+.tabset{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap;}
+.tabbtn{background:none;border:none;padding:10px 14px;font-size:13px;font-weight:700;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tabbtn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.grid2{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:900px){.grid2{grid-template-columns:2fr 1fr;}}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:0.4px;margin-bottom:6px;}
+.field input,.field textarea,.field select{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);
+  font-size:14px;background:var(--panel-2);color:var(--ink);}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--gold);}
+.field textarea{resize:vertical;min-height:60px;}
+.field input:disabled,.field textarea:disabled{opacity:0.6;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+.svc-list{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px;}
+.svc-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:13px;
+  border-bottom:1px solid var(--line);}
+.svc-item:last-child{border-bottom:none;}
+.svc-item.done{background:var(--green-soft);}
+.svc-item .nom{font-weight:600;}
+.svc-item .time{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+
+/* ===== Engagement de moyens ===== */
+.engin-pick-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.engin-pick{border:1.5px solid var(--green);color:var(--green);background:var(--green-soft);border-radius:9px;
+  padding:8px 13px;font-weight:700;font-family:var(--font-mono);font-size:12px;cursor:pointer;}
+.engin-pick:hover{background:rgba(53,211,152,0.24);}
+.engin-pick.selected{border-color:#fff;color:#1A1206;background:var(--gold);box-shadow:none !important;}
+.engagement-actions{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.engagement-actions .sel-count{font-family:var(--font-mono);font-size:12px;color:var(--muted);}
+.moyens-table{width:100%;border-collapse:collapse;font-size:13px;}
+.moyens-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);
+  padding:8px 10px;border-bottom:1px solid var(--line);}
+.moyens-table td{padding:9px 10px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:12.5px;}
+.etat-select{padding:5px 8px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);
+  font-size:12px;font-weight:700;font-family:var(--font-mono);}
+
+/* ===== Synoptique des engins ===== */
+.engine-grid{display:flex;flex-wrap:wrap;gap:10px;}
+.engine-chip{border:1.5px solid var(--line);border-radius:9px;padding:11px 14px;min-width:160px;transition:background .15s;}
+.engine-chip .nom{font-family:var(--font-mono);font-weight:800;font-size:13px;}
+.engine-chip select{width:100%;padding:5px 6px;border-radius:6px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink);font-size:11.5px;font-weight:700;margin-top:8px;}
+.engine-chip .chip-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+
+/* ===== Personnalisation des couleurs de statut (admin) ===== */
+.statut-colors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:14px;}
+.statut-color-row{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:9px;padding:8px 10px;}
+.statut-color-swatch{flex:1;min-width:0;font-family:var(--font-mono);font-size:11px;font-weight:800;
+  padding:6px 9px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.statut-color-input{width:38px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;
+  background:none;cursor:pointer;flex:0 0 auto;}
+.statut-color-reset{padding:5px 9px;flex:0 0 auto;}
+.add-engin-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+.add-engin-form input{padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--ink);font-size:13px;}
+
+/* ===== Personnel ===== */
+.pers-table{width:100%;border-collapse:collapse;font-size:13px;}
+.pers-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);
+  padding:8px 10px;border-bottom:1px solid var(--line);}
+.pers-table td{padding:9px 10px;border-bottom:1px solid var(--line);}
+.role-pill{font-size:10px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:999px;}
+.role-pill.agent{background:var(--panel-2);color:var(--muted);}
+.role-pill.operateur_cta{background:var(--amber-soft);color:var(--amber);}
+.role-pill.admin{background:var(--red-soft);color:#FF9498;}
+.inactive-row{opacity:0.45;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(5,12,20,0.65);display:flex;align-items:center;
+  justify-content:center;padding:20px;z-index:100;}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:420px;
+  width:100%;max-height:88vh;overflow:auto;}
+.modal h3{margin:0 0 16px 0;font-size:15px;color:#fff;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+
+.modal-wide{max-width:640px;}
+.mc-header{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
+.mc-header .mc-titre{font-weight:800;font-size:14px;color:#fff;margin-bottom:3px;}
+.mc-header .mc-lieu{font-size:12px;color:var(--gold);margin-bottom:6px;}
+.mc-header .mc-obs{font-size:12px;color:var(--muted);font-style:italic;}
+.mc-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.mc-toolbar .btn-sm{font-size:11.5px;}
+.mc-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+.mc-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);
+  padding:7px 9px;border-bottom:1px solid var(--line);}
+.mc-table th:first-child{width:110px;}
+.mc-table td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top;word-wrap:break-word;}
+.mc-table td.mc-horo{color:var(--muted);font-size:11px;line-height:1.4;}
+.mc-table td.mc-horo .mc-auteur{display:block;color:var(--gold);font-weight:700;}
+.mc-table td.mc-contenu{white-space:pre-wrap;line-height:1.45;}
+.mc-empty{color:var(--muted);font-size:12.5px;padding:16px 4px;text-align:center;}
+.mc-compose{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.mc-compose select{flex:0 0 160px;padding:9px 10px;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--ink);font-size:12.5px;}
+.mc-compose input{flex:1;min-width:180px;padding:9px 11px;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--ink);font-size:13px;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel-2);color:#fff;
+  border:1px solid var(--gold);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:200;
+  box-shadow:0 8px 22px rgba(0,0,0,0.4);}
+.toast.error{border-color:var(--red);color:#FF9498;}
+
+.section-note{font-size:11.5px;color:var(--muted);margin-top:14px;line-height:1.5;}
+
+/* ===== Motif d'intervention + suggestions d'engins ===== */
+.motif-select-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:2px;}
+.motif-select-row input{flex:1;min-width:220px;}
+.autocomplete-wrap{position:relative;}
+.autocomplete-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:80;background:var(--panel);
+  border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 25px rgba(0,0,0,.35);max-height:260px;overflow:auto;}
+.autocomplete-item{padding:9px 11px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px;}
+.autocomplete-item:last-child{border-bottom:none;}
+.autocomplete-item:hover,.autocomplete-item.active{background:var(--panel-2);}
+.autocomplete-item strong{display:block;color:var(--ink);}
+.autocomplete-item small{display:block;color:var(--muted);margin-top:2px;}
+.inter-create-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,.95fr);gap:20px;align-items:start;}
+.inter-map-card{position:sticky;top:14px;}
+.map-viewer{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel-2);}
+.map-viewport{position:relative;width:100%;height:520px;overflow:hidden;cursor:grab;touch-action:none;background:#0d2033;}
+.map-viewport.dragging{cursor:grabbing;}
+.inter-map{position:absolute;left:50%;top:50%;display:block;max-width:none;width:auto;height:100%;user-select:none;-webkit-user-drag:none;transform-origin:center center;will-change:transform;}
+.map-toolbar{position:absolute;right:10px;top:10px;z-index:5;display:flex;gap:5px;padding:5px;background:rgba(10,25,41,.88);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.35);}
+.map-tool{width:32px;height:30px;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);color:var(--ink);font-weight:800;cursor:pointer;}
+.map-tool:hover{border-color:var(--gold);color:var(--gold);}
+.map-zoom-label{min-width:48px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10.5px;color:var(--muted);}
+@media(max-width:1000px){.inter-create-grid{grid-template-columns:1fr;}.inter-map-card{position:static;}}
+.section-title{font-size:14px;font-weight:800;margin:4px 0 14px;color:#fff;}
+.inter-section{margin-top:20px;}
+.address-grid{display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(120px,1fr));gap:16px;}
+.address-meta input[readonly]{cursor:default;opacity:.95;}
+@media(max-width:900px){.address-grid{grid-template-columns:1fr 1fr;}.address-grid .address-main{grid-column:1 / -1;}}
+@media(max-width:560px){.address-grid{grid-template-columns:1fr;}.address-grid .address-main{grid-column:auto;}}
+
+.suggest-wrap{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
+.suggest-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;}
+.suggest-chips{display:flex;flex-wrap:wrap;gap:7px;}
+.suggest-chip{font-family:var(--font-mono);font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:999px;
+  border:1.5px solid var(--line);color:var(--muted);background:var(--panel-2);}
+.suggest-chip.dispo{border-color:var(--green);color:var(--green);background:var(--green-soft);}
+.suggest-chip.absent{opacity:0.55;}
+
+/* ===== Chips catégorie (couleur par type d'engin) ===== */
+.cat-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;font-weight:800;
+  padding:2px 7px;border-radius:5px;letter-spacing:0.3px;text-transform:uppercase;}
+
+/* ===== Synoptique interventions — cartes "ligne" façon CTA/INTER ===== */
+:root{
+  --pink:#E85FA0; --pink-soft:rgba(232,95,160,0.16);
+  --blue:#4FA6E8; --blue-soft:rgba(79,166,232,0.16);
+  --yellow:#E8D24F; --yellow-soft:rgba(232,210,79,0.16);
+}
+.syn-row{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;
+  transition:border-color .12s;}
+.syn-row.age-warn{border-color:var(--amber);}
+.syn-row.age-alert{border-color:var(--red);}
+.syn-row-head{display:grid;grid-template-columns:34px auto 100px 1fr 1fr 1.2fr;gap:0;align-items:stretch;
+  border-bottom:1px solid var(--line);cursor:pointer;}
+@media(max-width:900px){.syn-row-head{grid-template-columns:1fr;}}
+.syn-cell{padding:10px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;
+  min-width:0;}
+.syn-cell:last-child{border-right:none;}
+.syn-cell .lbl{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.6px;color:var(--muted);
+  text-transform:uppercase;margin-bottom:2px;}
+.syn-cell .val{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.syn-cell.icon-cell{align-items:center;justify-content:center;background:var(--panel-2);font-size:16px;}
+.syn-cell.numero .val{font-family:var(--font-mono);color:var(--gold);background:var(--panel-2);
+  border:1px solid var(--line);border-radius:7px;padding:3px 9px;display:inline-block;width:fit-content;}
+.syn-cell.sinistre .val{display:flex;align-items:center;gap:6px;}
+.syn-timer{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);}
+.syn-row.age-warn .syn-timer{color:var(--amber);}
+.syn-row.age-alert .syn-timer{color:var(--red);}
+
+.syn-badges{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);}
+.syn-badges:empty{display:none;}
+.syn-badge{font-size:10px;font-weight:800;letter-spacing:0.3px;text-transform:uppercase;padding:4px 10px;
+  border-radius:999px;}
+
+.syn-engins{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);}
+.syn-engin-chip{position:relative;font-family:var(--font-mono);font-size:11.5px;font-weight:800;
+  border-radius:8px;padding:7px 26px 7px 12px;display:flex;align-items:center;gap:6px;}
+.syn-engin-chip .tag{position:absolute;top:-6px;right:-4px;background:var(--panel);color:var(--ink);
+  font-size:8px;font-weight:800;padding:2px 5px;border-radius:5px;border:1px solid var(--line);}
+
+.syn-actions{display:flex;align-items:center;gap:8px;padding:9px 14px;flex-wrap:wrap;}
+.syn-icon-btn{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:14px;flex-shrink:0;}
+.syn-icon-btn.ic-cloturer{background:var(--red-soft);color:#FF6A70;}
+.syn-icon-btn.ic-cloturer:hover{background:rgba(230,72,79,0.32);}
+.syn-icon-btn.ic-engin{background:var(--green-soft);color:var(--green);}
+.syn-icon-btn.ic-engin:hover{background:rgba(53,211,152,0.3);}
+.syn-icon-btn.ic-services{background:var(--blue-soft);color:var(--blue);}
+.syn-icon-btn.ic-services:hover{background:rgba(79,166,232,0.3);}
+.syn-icon-btn.ic-historique{background:var(--amber-soft);color:var(--amber);}
+.syn-icon-btn.ic-historique:hover{background:rgba(242,169,60,0.3);}
+.syn-icon-btn.ic-detail{background:var(--panel-2);color:var(--muted);border:1px solid var(--line);}
+.syn-icon-btn.ic-detail:hover{color:#fff;}
+
+/* ===== Fonctions (admin) ===== */
+.fonctions-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.fonctions-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);
+  padding:8px 10px;border-bottom:1px solid var(--line);}
+.fonctions-table td{padding:8px 10px;border-bottom:1px solid var(--line);}
+.fonctions-table td.code{font-family:var(--font-mono);font-weight:700;color:var(--gold);}
+.fonc-tags{display:flex;flex-wrap:wrap;gap:4px;max-width:260px;}
+.fonc-tag{font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:5px;
+  background:var(--panel-2);color:var(--muted);border:1px solid var(--line);}
+
+/* ===== Planning / feuille de garde ===== */
+.planning-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.planning-toolbar input[type="date"]{padding:9px 12px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--ink);font-size:13px;}
+.planning-toolbar-sep{width:1px;height:24px;background:var(--line);}
+.planning-toolbar select{padding:9px 10px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--ink);font-size:13px;}
+.planning-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:820px){.planning-grid{grid-template-columns:1fr 1fr;}}
+.planning-engin-card{background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:13px 15px;}
+.planning-engin-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;
+  padding-bottom:8px;border-bottom:1px solid var(--line);}
+.planning-engin-head .nom{font-family:var(--font-mono);font-weight:800;font-size:13.5px;}
+.planning-engin-head-tags{display:flex;align-items:center;gap:6px;}
+.planning-remove-btn{background:var(--red-soft);color:#FF6A70;border:none;border-radius:7px;padding:5px 9px;
+  font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;}
+.planning-remove-btn:hover{background:rgba(230,72,79,0.32);}
+.planning-poste-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.planning-poste-row label{flex:0 0 150px;font-size:11px;color:var(--muted);font-weight:700;}
+.planning-poste-row select{flex:1;padding:7px 9px;border-radius:7px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);font-size:12.5px;}
+.planning-poste-row select.filled{border-color:var(--green);}
+.planning-no-postes{font-size:11.5px;color:var(--muted);font-style:italic;}
+</style>
+</head>
+<body>
+
+<!-- ================== ÉCRAN CONNEXION ================== -->
+<div class="auth-shell" id="loginScreen">
+  <div class="auth-card">
+    <div class="auth-badge"><img id="loginLogo" alt="Marins-Pompiers de Marseille"></div>
+    <div class="auth-title">Bataillon de Marins-Pompiers</div>
+    <div class="auth-subtitle">COSSIM</div>
+    <div id="loginErrorSlot"></div>
+    <form id="loginForm">
+      <div class="auth-field">
+        <label for="loginMatricule">Matricule</label>
+        <input type="text" id="loginMatricule" inputmode="numeric" autocomplete="username" placeholder="ex. 1302">
+      </div>
+      <div class="auth-field">
+        <label for="loginPassword">Mot de passe</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••">
+      </div>
+      <button type="submit" class="auth-submit">Se connecter</button>
+    </form>
+    <div class="auth-hint">Accès réservé au personnel du BMPM.</div>
+  </div>
+</div>
+
+<!-- ================== ÉCRANS APPLICATIFS ================== -->
+<div id="appScreens" class="hidden">
+  <div class="topbar">
+    <div class="tb-brand">
+      <div class="tb-badge"><img id="tbLogo" alt="BMPM"></div>
+      <div class="tb-text"><div class="t1">BMPM</div><div class="t2">COSSIM</div></div>
+    </div>
+    <div class="tb-nav">
+      <button class="tb-btn" id="navHome" data-screen="menu">Accueil</button>
+      <button class="tb-btn" id="navSynInter" data-screen="syninter">Synoptique interventions</button>
+      <button class="tb-btn" id="navSynoptique" data-screen="synoptique">Synoptique engins</button>
+      <button class="tb-btn hidden" id="navPlanning" data-screen="planning">Planning</button>
+      <button class="tb-btn hidden" id="navPersonnel" data-screen="personnel">Personnel</button>
+      <span class="tb-user" id="tbUser"></span>
+      <button class="tb-logout" id="btnLogout">Déconnexion</button>
+    </div>
+  </div>
+
+  <!-- ===== ACCUEIL ===== -->
+  <div class="shell" id="screenMenu">
+    <div class="menu-grid">
+      <button type="button" class="menu-card c1" id="btnNewIntervention">
+        <div class="icon">🚨</div>
+        <div class="title">Nouvelle intervention</div>
+        <div class="desc">Ouvrir une MISSION et engager les moyens.</div>
+      </button>
+      <button type="button" class="menu-card c2" id="btnGoSynInterCard">
+        <div class="icon">🗺️</div>
+        <div class="title">Synoptique interventions</div>
+        <div class="desc">Vue temps réel des interventions en cours.</div>
+      </button>
+      <button type="button" class="menu-card c3" id="btnGoSynoptiqueCard">
+        <div class="icon">🚒</div>
+        <div class="title">Synoptique des engins</div>
+        <div class="desc">Consulter et mettre à jour la disponibilité des engins.</div>
+      </button>
+      <button type="button" class="menu-card c4 hidden" id="btnGoPersonnelCard">
+        <div class="icon">👤</div>
+        <div class="title">Gestion du personnel</div>
+        <div class="desc">Ajouter, modifier ou désactiver des comptes.</div>
+      </button>
+      <button type="button" class="menu-card c2 hidden" id="btnGoPlanningCard">
+        <div class="icon">🗓️</div>
+        <div class="title">Planning / feuille de garde</div>
+        <div class="desc">Affecter le personnel aux engins pour la garde du jour.</div>
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Historique — interventions clôturées</div>
+        <span class="badge-count" id="countCloturees">0</span>
+      </div>
+      <div id="listCloturees"></div>
+    </div>
+  </div>
+
+  <!-- ===== SYNOPTIQUE DES INTERVENTIONS (board temps réel) ===== -->
+  <div class="shell shell-wide hidden" id="screenSyninter">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Interventions en cours</div>
+        <span class="badge-count" id="synInterCount">0</span>
+      </div>
+      <div class="board-grid" id="synInterGrid"></div>
+      <div class="section-note">Le liseré passe à l'orange après 15 min, au rouge après 45 min sans clôture.</div>
+    </div>
+  </div>
+
+  <!-- ===== DÉTAIL INTERVENTION ===== -->
+  <div class="shell hidden" id="screenIntervention">
+    <div class="inter-header">
+      <div>
+        <div class="inter-title">MISSION N°<span class="num" id="interNum"></span></div>
+        <div class="inter-sub" id="interDate"></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" id="btnBackMenu">‹ Accueil</button>
+        <button class="btn btn-secondary btn-sm" id="btnHistorique">🕐 Historique</button>
+        <button class="btn btn-primary btn-sm" id="btnSaveIntervention">Enregistrer</button>
+        <button class="btn btn-secondary btn-sm hidden" id="btnCloturer">Clôturer</button>
+      </div>
+    </div>
+
+    <div class="inter-create-grid">
+      <div>
+        <div class="card">
+          <div class="section-title">Intervention</div>
+          <div class="field">
+            <label>Motif d'intervention</label>
+            <div class="motif-select-row autocomplete-wrap">
+              <input id="fMotif" autocomplete="off" placeholder="Commencer à écrire le motif…">
+              <div class="autocomplete-list hidden" id="motifSuggestions"></div>
+            </div>
+            <div class="section-note">Commence à écrire : les motifs enregistrés te seront proposés automatiquement.</div>
+          </div>
+          <div class="field"><label>Observation</label><input id="fObservation"></div>
+          <div class="address-grid">
+            <div class="field autocomplete-wrap address-main">
+              <label>Adresse du sinistre</label>
+              <input id="fAdresse" autocomplete="off" placeholder="N° et nom de rue…">
+              <div class="autocomplete-list hidden" id="adresseSuggestions"></div>
+            </div>
+            <div class="field address-meta"><label>Commune</label><input id="fCommune"></div>
+            <div class="field address-meta"><label>Arrondissement</label><input id="fArrondissement" readonly placeholder="—"></div>
+            <div class="field address-meta"><label>Type de voie</label><input id="fTypeVoie" readonly placeholder="—"></div>
+          </div>
+          <div class="field"><label>ETARE</label><input id="fEtare"></div>
+          <div class="field"><label>Consignes</label><textarea id="fConsignes"></textarea></div>
+          <div class="field"><label>Appelant</label><input id="fAppelant"></div>
+        </div>
+
+        <div class="card inter-section" id="motifSuggestCard" style="display:none;">
+          <div class="card-title" style="margin-bottom:12px;">Réponse opérationnelle suggérée</div>
+          <div class="suggest-chips" id="motifSuggestChips"></div>
+          <div class="section-note">Suggestion indicative — aucun engin n'est engagé automatiquement.</div>
+        </div>
+
+        <div class="card inter-section">
+          <div class="section-title">Engagement des moyens</div>
+          <div class="card-title" style="margin-bottom:12px;">Engins disponibles — cliquer pour sélectionner</div>
+          <div class="engin-pick-grid" id="enginsDispoGrid"></div>
+          <div class="engagement-actions">
+            <button class="btn btn-primary" id="btnDiffuser" disabled>📡 Diffuser l'engagement</button>
+            <span class="sel-count" id="enginSelCount"></span>
+          </div>
+          <table class="moyens-table">
+            <thead><tr><th>Engin</th><th>État</th><th>Engagé à</th><th>Disponible à</th><th></th></tr></thead>
+            <tbody id="moyensBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card inter-section">
+          <div class="section-title">Services prévenus</div>
+          <div class="svc-list" id="svcList"></div>
+          <div class="section-note">Prévenir un service l'horodate automatiquement.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card inter-map-card">
+          <div class="card-title" style="margin-bottom:12px;">Carte opérationnelle</div>
+          <div class="map-viewer" id="mapViewer">
+            <div class="map-toolbar">
+              <button type="button" class="map-tool" id="mapZoomOut" title="Dézoomer">−</button>
+              <span class="map-zoom-label" id="mapZoomLabel">100%</span>
+              <button type="button" class="map-tool" id="mapZoomIn" title="Zoomer">+</button>
+              <button type="button" class="map-tool" id="mapZoomReset" title="Réinitialiser">↺</button>
+            </div>
+            <div class="map-viewport" id="mapViewport">
+              <img class="inter-map" id="interMapImage" src="/map.png" alt="Carte opérationnelle" draggable="false">
+            </div>
+          </div>
+          <div class="section-note">Molette pour zoomer, clic-glissé pour déplacer la carte. <strong>map.png</strong> est utilisé comme fond de carte.</div>
+        </div>
+
+        <div class="card inter-section">
+          <div class="section-title">Détails des moyens engagés</div>
+          <table class="moyens-table">
+            <thead><tr><th>Engin</th><th>État</th><th>Engagé à</th><th>Disponible à</th></tr></thead>
+            <tbody id="moyensBodyReadonly"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===== SYNOPTIQUE DES ENGINS ===== -->
+  <div class="shell hidden" id="screenSynoptique">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">CIS LOUVAIN — Synoptique des engins</div>
+        <span class="badge-count" id="synCount">0 ENGINS</span>
+      </div>
+      <div class="engine-grid" id="synGrid"></div>
+      <form class="add-engin-form hidden" id="addEnginForm">
+        <input id="newEnginNom" placeholder="Nom (ex. VSAV 06 LVN)" required>
+        <input id="newEnginCategorie" placeholder="Catégorie (ex. VSAV)">
+        <button type="submit" class="btn btn-primary btn-sm">Ajouter un engin</button>
+      </form>
+      <div class="section-note" id="synReadonlyNote">Vue de consultation — seuls les opérateurs COSSIM et les administrateurs peuvent modifier le synoptique.</div>
+    </div>
+
+    <div class="card hidden" id="statutColorsCard">
+      <div class="card-head">
+        <div class="card-title">Couleurs des statuts d'engins</div>
+      </div>
+      <div class="statut-colors-grid" id="statutColorsGrid"></div>
+      <button type="button" class="btn btn-primary btn-sm" id="btnSaveStatutColors">Enregistrer les couleurs</button>
+      <div class="section-note">Personnalise la couleur de chaque statut : elle s'applique immédiatement au fond de chaque engin, ici comme dans les interventions en cours. Utilise ↺ pour revenir à la couleur par défaut d'un statut.</div>
+    </div>
+  </div>
+
+  <!-- ===== PLANNING / FEUILLE DE GARDE ===== -->
+  <div class="shell hidden" id="screenPlanning">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Feuille de garde</div>
+        <span class="badge-count" id="planningEnginCount">0 ENGINS</span>
+      </div>
+      <div class="planning-toolbar">
+        <label for="planningDate" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Jour de garde</label>
+        <input type="date" id="planningDate">
+        <span class="planning-toolbar-sep hidden" id="planningAddSep"></span>
+        <select class="hidden" id="planningAddEnginSelect" style="flex:1;min-width:200px;"></select>
+        <button type="button" class="btn btn-primary btn-sm hidden" id="btnPlanningAddEngin">Armer ce véhicule</button>
+      </div>
+      <div class="planning-grid" id="planningGrid"></div>
+      <div class="section-note" id="planningReadonlyNote">Vue de consultation — seuls les opérateurs COSSIM et les administrateurs peuvent modifier le planning.</div>
+      <div class="section-note">N'apparaissent ici que les véhicules explicitement armés pour ce jour de garde, choisis parmi ceux présents au synoptique des engins. Les postes proposés pour chaque engin dépendent de sa catégorie (chef d'agrès, conducteur, équipier...) : seul le personnel dont le grade donne accès à la fonction apparaît dans chaque liste.</div>
+    </div>
+  </div>
+
+  <!-- ===== GESTION DU PERSONNEL (admin) ===== -->
+  <div class="shell hidden" id="screenPersonnel">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Personnel</div>
+        <button class="btn btn-primary btn-sm" id="btnAddPersonnel">+ Ajouter une personne</button>
+      </div>
+      <table class="pers-table">
+        <thead><tr><th>Matricule</th><th>Nom</th><th>Grade</th><th>Fonctions</th><th>Rôle</th><th>Statut</th><th></th></tr></thead>
+        <tbody id="persBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Grades</div>
+      </div>
+      <div id="gradesList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+      <form class="add-engin-form" id="addGradeForm">
+        <input id="newGradeCode" placeholder="Code (ex. ASP)" style="max-width:120px;">
+        <input id="newGradeLibelle" placeholder="Libellé (ex. Aspirant)">
+        <button type="submit" class="btn btn-primary btn-sm">Ajouter un grade</button>
+      </form>
+      <div class="section-note">La liste des grades est entièrement personnalisable : ajoute les tiens en plus de ceux fournis par défaut (MO2, MO1, QM2, QM1, SM, MT, PM, MP, MJR, EV2, EV1, LV).</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Fonctions — équivalences avec les grades</div>
+      </div>
+      <table class="fonctions-table">
+        <thead><tr><th>Fonction</th><th>Catégorie engin</th><th>Acquise à partir du grade</th></tr></thead>
+        <tbody id="fonctionsBody"></tbody>
+      </table>
+      <div class="section-note">Quand une personne monte en grade, elle garde toutes les fonctions déjà acquises aux grades inférieurs, en plus des nouvelles. Modifie le grade seuil de chaque fonction ci-dessus si besoin.</div>
+    </div>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============================================================
+   COSSIM BMPM — front statique (Netlify) parlant aux fonctions
+   serverless via /api/* (redirigé vers netlify/functions/*.js).
+   ============================================================ */
+const API = "/api";
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ============================================================
+   MOTIFS D'INTERVENTION — liste proposée + réponse opérationnelle
+   type (reprise des tableaux CTA). La réponse est indicative :
+   les codes d'engins/moyens qui y figurent sont proposés comme
+   SUGGESTIONS dans l'onglet Engagement, jamais engagés seuls.
+   ============================================================ */
+const MOTIFS = [
+  { c:"SUAP", m:"OUVERTURE DE PORTE AVEC VICTIME", r:"FI" },
+  { c:"SUAP", m:"VICTIME A DOMICILE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME D'AFFECTION CARDIAQUE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME D'AFFECTION RESPIRATOIRE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME D'ELECTRISATION/FOUDROIEMENT", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME D'HEMORRAGIE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME D'INTOXICATION", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME D'INTOXICATION MEDICAMENTEUSE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME DANS UN ETABLISSEMENT SCOLAIRE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME DANS UN LIEU PUBLIC", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME DE BRULURE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME DE NOYADE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME FEMME EN COUCHES", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME INCONSCIENTE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME MENACANT DE SE JETER", r:"VSAV + FI + MEA + VRCG" },
+  { c:"SUAP", m:"VICTIME PAR AGRESSION", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME PAR ARME BLANCHE", r:"VSAV ou VSAV + FI ou VSAV + FI + VRCG" },
+  { c:"SUAP", m:"VICTIME PAR PENDAISON/STRANGULATION", r:"VSAV + AR" },
+  { c:"SUAP", m:"VICTIME PAR ECRASEMENT/COMPRESSION", r:"VSAV + AR + VRCG (+ FI)" },
+  { c:"SUAP", m:"VICTIME PERSONNEL BMP", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME PRESENTANT UNE DANGEROSITE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME D'INTOXICATION AUTRE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME SOUS RAME METRO", r:"VSAV + FI + VRCG + VRCC + CAMF + AR + CSR" },
+  { c:"SUAP", m:"VICTIME SOUS UN TRAIN", r:"VSAV + FI + VRCG + VRCC + CAMF + AR + CSR" },
+  { c:"SUAP", m:"VICTIME SUITE A ACTIVITE SPORTIVE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME SUITE A CHUTE SUP>3M", r:"VSAV + AR + VRCG" },
+  { c:"SUAP", m:"VICTIME SUITE PLONGEE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME SUR LA VOIE PUBLIQUE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME SUR LE LIEU DE TRAVAIL", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME TRANSFEREE ENTRE HOPITAUX", r:"VSAV / AR" },
+  { c:"SUAP", m:"VICTIME TRANSPORTEE PAR CARENCE", r:"VSAV" },
+  { c:"SUAP", m:"VICTIME PAR ARME A FEU", r:"VSAV + FI + VRCG + AR + VRCC" },
+
+  { c:"AVP", m:"ACCIDENT CIRCULATION 2R CONTRE 2R", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION 2R CONTRE PIETON", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION 2R CONTRE PL", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION 2R CONTRE VL", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION 2R SEUL", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION BUS CONTRE 2R", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION BUS CONTRE BUS", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION BUS CONTRE PIETON", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION BUS CONTRE PL", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION BUS CONTRE VL", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION BUS SEUL", r:"VSAV ou VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION CARAMBOLAGE", r:"GSAP + CSR + VRCG + VDSM + AR + VRCC + CAMF" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION PL CONTRE PIETON", r:"VSAV + AR + VRCG + CSR + CAMF + FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION PL CONTRE PL", r:"VSAV + AR + VRCG + CSR + CAMF + FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION PL SEUL", r:"VSAV + FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION PL TMD", r:"VSAV + VRCG + CSR + FI + MRRT + VRCG RT" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION TRAMWAY CONTRE PIETON", r:"VSAV + FI + VRCG + CAMF + AR + CSR" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION TRAIN/TRAM CONTRE PIETON", r:"GSAP + CSR + VRCG + VDSM + AR + VRCC + CAMF" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION TRAIN/TRAM CONTRE PL", r:"GSAP + CSR + VRCG + VDSM + AR + VRCC + CAMF" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION TRAIN/TRAM CONTRE VL", r:"VSAV + FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION TRAIN/TRAM SEUL", r:"GSAP + CSR + VRCG + VDSM + AR + 2 VRCC + CAMF" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION TRAIN/TRAM SUIVIE DE FEU", r:"GSAP + CSR + VRCG + VDSM + AR + 2 VRCC + CAMF + GINC" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION TROTTINETTE SEULE", r:"VSAV" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION VEHICULE TOMBE A L'EAU", r:"VSAV + FI + CSR + CAMF + CPL + ESL + VEDETTE + VRCG" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION VL CONTRE PIETON", r:"VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION VL CONTRE PL", r:"VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION VL CONTRE VL", r:"VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION VL SEUL", r:"VSAV + VPI / FI" },
+  { c:"AVP", m:"ACCIDENT CIRCULATION VEHICULE EN FEU", r:"VSAV + FI + CSR + VRCG + CCF SI AUTOROUTE" },
+  { c:"AVP", m:"ACCIDENT D'EMBARCATION", r:"VSAV + VRCG + VEDETTE + ESL" },
+
+  { c:"INC", m:"EXPLOSION (SANS PRECISION)", r:"GINC + GSAP + AR + VRCC + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"EXPLOSION DE BATIMENT", r:"GINC + GSAP + AR + VRCC + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"EXPLOSION NON SUIVIE DE FEU", r:"GINC + GSAP + AR + VRCC + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"EXPLOSION SUIVIE DE FEU", r:"GINC + GSAP + AR + VRCC + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"FEU A L'INTERIEUR D'UN TUNNEL", r:"2 GURB + GSAP + VRCG + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"FEU DANS UN BATIMENT OU AUTRE", r:"GINC + VSAV" },
+  { c:"INC", m:"FEU D'EMBARCATION", r:"GINC + VSAV + VDSM + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"FEU D'ENTREPOT", r:"GINC + VSAV + GLIF + GSAP + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"FEU DANS UN BATIMENT D'HABITATION", r:"GINC + VSAV" },
+  { c:"INC", m:"FEU DANS UN ETABLISSEMENT RECEVANT DU PUBLIC", r:"GINC + VSAV (renforts en fonction du type d'ERP)" },
+  { c:"INC", m:"FEU DE CASSE AUTOMOBILE", r:"GINC + GLIF + GSAP + MPCC + CMAR + VSSO + CSARI" },
+  { c:"INC", m:"FEU DE CHAUFFERIE", r:"GINC + VSAV" },
+  { c:"INC", m:"FEU DE CHEMINEE", r:"FI ou GINC + VSAV" },
+  { c:"INC", m:"FEU DE COMPTEUR INSTALLATION ELECTRIQUE", r:"FI" },
+  { c:"INC", m:"FEU DE DETRITUS POUBELLE CONTENEUR", r:"FI ou VPI" },
+  { c:"INC", m:"FEU DE DECHETTERIE", r:"GINC + VSAV + MRRT + VRCG RT + MPCC + VSSO + CSARI + CMAR" },
+  { c:"INC", m:"FEU DE LAVERIE", r:"GINC + VSAV + MRRT + VRCG RT + MPCC + VSSO + CSARI + CMAR" },
+  { c:"INC", m:"FEU DE NAVIRE", r:"2 GINC + 1 GSAP + MPCC + CIBN + VSSO + CSARI + VDSM" },
+  { c:"INC", m:"FEU DE PARC DE STATIONNEMENT COUVERT", r:"GINC + VSAV + CMAR" },
+  { c:"INC", m:"FEU DE TRANSFORMATEUR ELECTRIQUE", r:"GURB + CBEX + VRCG + GSAP" },
+  { c:"INC", m:"FEU DE VEGETATION", r:"FI/VPI ou CCF => en fonction de l'appel" },
+  { c:"INC", m:"FEU DE VEHICULE (PL)", r:"FI + VPI/CCF + CSR si autoroute + GLIF si besoin" },
+  { c:"INC", m:"FEU DE VEHICULE(S) LEGER(S)", r:"FI" },
+  { c:"INC", m:"FEU TYPE NON DENOMME", r:"FI ou VPI" },
+  { c:"INC", m:"FUITE DE GAZ ENFLAMMEE", r:"GINC + VSAV + MPCC + CMAR + VSSO" },
+  { c:"INC", m:"FEU DE 2R CYCLOMOTEUR", r:"FI" },
+
+  { c:"DIV", m:"DANGERS ELECTRIQUES", r:"FI" },
+  { c:"DIV", m:"RECONNAISSANCE ALARME INCENDIE", r:"FI" },
+  { c:"DIV", m:"RECONNAISSANCE COLIS SUSPECT - ENGIN EXPLOSIF", r:"VRCG + FI + VSAV" },
+  { c:"DIV", m:"RECONNAISSANCE ODEUR OU FUMEE SUSPECTE", r:"FI" },
+  { c:"DIV", m:"RECONNAISSANCE INONDATION", r:"VPI" },
+  { c:"DIV", m:"RECONNAISSANCE NON DENOMMEE", r:"à voir en fonction de l'appel" },
+  { c:"DIV", m:"CAPTURE ANIMAL DANGEREUX", r:"VICT" },
+  { c:"DIV", m:"SAUVETAGE D'ANIMAL", r:"VPI / VICT" },
+  { c:"DIV", m:"ASCENSEUR BLOQUE CARENCE SOCIETE PRIVEE", r:"VPI" },
+  { c:"DIV", m:"DEGAGEMENT DE PERSONNE", r:"VPI" },
+  { c:"DIV", m:"DESTRUCTION DE NUISIBLES", r:"VPI" },
+  { c:"DIV", m:"OBJET MENACANT DE TOMBER", r:"FI ou FI + VRCG (cadre USAR + DPPGR)" },
+  { c:"DIV", m:"RENFORCEMENT COUVERTURE OPERATIONNELLE FDF", r:"DIP / GIFF / MIL / GIFF DIH" },
+  { c:"DIV", m:"PARTICIPATION AU PC D'UN SERVICE PARTENAIRE", r:"/" },
+  { c:"DIV", m:"RECONSTITUTION", r:"/" },
+
+  { c:"RT", m:"FUITE DE PRODUITS CHIMIQUES", r:"FI + VRCG + MRRT + CMAR + VSAV" },
+  { c:"RT", m:"INCIDENT DE MATIERES DANGEREUSES", r:"GURB + MRRT + CMAR + VSAV" },
+  { c:"RT", m:"POLLUTION", r:"VPI ou FI + VRCG" },
+  { c:"RT", m:"POLLUTION AQUATIQUE", r:"FI + VRCG + ESL + ETIS + CRDEPOL + CMAR" },
+  { c:"RT", m:"PROCEDURE GAZ CLASSIQUE", r:"FI ou GURB" },
+  { c:"RT", m:"PROCEDURE GAZ RENFORCEE", r:"GINC + VSAV + VRCG + VRCC" },
+
+  { c:"SOS", m:"EFFONDREMENT DE BATIMENT", r:"GINC + GSAP + AR + VDSM + CMAR + MPCC + VSSO + USAR" },
+  { c:"SOS", m:"NAUFRAGE DE BATEAU", r:"VEDETTE + ETIS + ESL si moins de 6m" },
+  { c:"SOS", m:"RECHERCHE DE BIEN IMMERGE", r:"CPL ou VEDETTE + ESL" },
+  { c:"SOS", m:"REMORQUAGE EMBARCATION", r:"VEDETTE" },
+  { c:"SOS", m:"ASSISTANCE NAUTIQUE A PERSONNE", r:"VSAV + VRCG + ESL + VEDETTE (+ CPL si besoin)" },
+];
+const MOTIF_CAT_LABEL = { SUAP:"SUAP", AVP:"AVP", INC:"Incendie", DIV:"Divers", RT:"Risques techno.", SOS:"Sauvetage" };
+
+// Extrait les codes d'engins/moyens cités dans une réponse opérationnelle
+// (ignore les mots de liaison : ou / si / en fonction de...).
+const MOTIF_STOPWORDS = new Set(["OU","SI","EN","DE","DU","LA","LE","UN","UNE","AUTOROUTE","BESOIN",
+  "FONCTION","APPEL","MOINS","SUP","TYPE","NON","DENOMME","RENFORTS","CADRE","PARTENAIRE","SERVICE",
+  "L","A","VOIR","ERP"]);
+function extractEnginsFromReponse(reponse){
+  if (!reponse || reponse.trim() === "/") return [];
+  const tokens = reponse.toUpperCase().match(/[A-Z][A-Z0-9\/]*/g) || [];
+  const seen = new Set(), out = [];
+  tokens.forEach(t => {
+    if (MOTIF_STOPWORDS.has(t) || t.length < 2 || seen.has(t)) return;
+    seen.add(t); out.push(t);
+  });
+  return out;
+}
+
+// Postes (fonctions) proposés dans le planning selon la catégorie d'un engin.
+const POSTES_PAR_CATEGORIE = {
+  VSAV: [["CA_VSAV","Chef d'agrès"], ["COND_VSAV_VL","Conducteur"], ["EQUI_VSAV","Équipier"]],
+  FI:   [["CA_FI","Chef d'agrès"], ["COND_FI","Conducteur"],
+         ["CHEF_BIN1","Chef binôme 1"], ["EQUI_BIN1","Équipier binôme 1"],
+         ["CHEF_BIN2","Chef binôme 2"], ["EQUI_BIN2","Équipier binôme 2"]],
+  VPI:  [["CA_VPI","Chef d'agrès"], ["COND_VPI","Conducteur"], ["EQUI_VPI","Équipier"]],
+  VRCG: [["CDG","Chef de groupe"], ["COND_VL/HR","Conducteur"]],
+  VRCC: [["CDC","Chef de colonne"], ["COND_VL/HR","Conducteur"]],
+  CCF:  [["CA_CCF","Chef d'agrès"], ["COND_CCF","Conducteur"], ["EQUI_CCF","Équipier"]],
+  MEA:  [["CA_MEA","Chef d'agrès"], ["COND_MEA","Conducteur"], ["EQU_MEA","Équipier"]],
+  CSR:  [["CA_SR","Chef d'agrès"], ["COND_SR","Conducteur"], ["EQU_SR","Équipier"]],
+  AR:  [["MED","Médecin"], ["COND_AR","Conducteur"], ["INF","Infirmier"]],
+};
+
+// Couleur d'affichage par catégorie d'engin (chips synoptique/planning)
+const CAT_COLORS = {
+  VSAV:"#E6484F", FI:"#D8A438", MEA:"#35D398", VPI:"#4FA6E8", VRCG:"#B980E8",
+  VRCC:"#E88F4F", CCF:"#8FA23A", CSR:"#4FCBD0", AR:"#F2A93C",
+};
+function catColor(cat){ return CAT_COLORS[cat] || "#7E97AF"; }
+function catChip(cat){
+  const col = catColor(cat);
+  return `<span class="cat-chip" style="background:${col}22;color:${col};border:1px solid ${col}66;">${escapeHtml(cat)}</span>`;
+}
+
+const VEHICLE_STATUSES = [
+  ["en_route", "En route"],
+  ["sur_les_lieux", "Sur les lieux"],
+  ["message", "Message"],
+  ["message_urgent", "Message Urgent"],
+  ["transport_ch", "Transport CH"],
+  ["arrive_ch", "Arrivé CH"],
+  ["disponible_radio", "Disponible Radio"],
+  ["indisponible", "Indisponible"],
+  ["rentre", "Rentré"],
+];
+const VEHICLE_STATUS_LABELS = Object.fromEntries(VEHICLE_STATUSES);
+function vehicleStatusOptions(current){
+  return VEHICLE_STATUSES.map(([value, label]) =>
+    `<option value="${value}" ${value === current ? "selected" : ""}>${label}</option>`
+  ).join("");
+}
+function vehicleStatusLabel(value){
+  return VEHICLE_STATUS_LABELS[value] || (value === "disponible" ? "Disponible Radio" : value);
+}
+function isEngineAvailable(e){
+  return ["disponible_radio", "rentre", "disponible"].includes(e.statut);
+}
+
+// Couleurs par défaut des statuts (miroir de netlify/functions/statut-couleurs.js).
+// Utilisées tant que les couleurs personnalisées n'ont pas encore été chargées
+// depuis le serveur, et comme valeurs de réinitialisation dans le panneau admin.
+const DEFAULT_STATUT_COLORS = {
+  en_route:          "#E6484F",
+  sur_les_lieux:     "#F2A93C",
+  message:           "#4FA6E8",
+  message_urgent:    "#C62839",
+  transport_ch:      "#E85FA0",
+  arrive_ch:         "#8FA23A",
+  disponible_radio:  "#35D398",
+  indisponible:      "#7E97AF",
+  rentre:            "#35D398",
+};
+function statutColor(code){
+  return (state.statutColors && state.statutColors[code]) || DEFAULT_STATUT_COLORS[code] || "#7E97AF";
+}
+// Choisit un texte clair ou sombre selon la luminosité de la couleur de fond,
+// pour que le nom de l'engin reste toujours lisible quelle que soit la couleur choisie.
+function contrastText(hex){
+  const h = (hex || "#7E97AF").replace("#", "");
+  if (h.length !== 6) return "#0A1929";
+  const r = parseInt(h.slice(0,2), 16), g = parseInt(h.slice(2,4), 16), b = parseInt(h.slice(4,6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#0A1929" : "#FFFFFF";
+}
+function statutChipStyle(code){
+  const bg = statutColor(code);
+  return `background:${bg};color:${contrastText(bg)};`;
+}
+
+let state = {
+  token: localStorage.getItem("cossim_token") || null,
+  user: JSON.parse(localStorage.getItem("cossim_user") || "null"),
+  grades: [],
+  engins: [],
+  services: [],
+  fonctions: [],
+  personnelList: [],
+  statutColors: { ...DEFAULT_STATUT_COLORS },
+  currentInterventionId: null,
+  synInterTimer: null,
+  synOptiqueTimer: null,
+  planningDate: new Date().toISOString().slice(0, 10),
+};
+
+document.getElementById("loginLogo").src = LOGO_SRC;
+document.getElementById("tbLogo").src = LOGO_SRC;
+
+/* ---------- Carte : zoom + déplacement ---------- */
+const mapState = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, baseX: 0, baseY: 0 };
+function applyMapTransform(){
+  const img = document.getElementById("interMapImage");
+  const label = document.getElementById("mapZoomLabel");
+  if (!img) return;
+  img.style.transform = `translate(calc(-50% + ${mapState.x}px), calc(-50% + ${mapState.y}px)) scale(${mapState.scale})`;
+  if (label) label.textContent = Math.round(mapState.scale * 100) + "%";
+}
+function setMapZoom(nextScale){
+  mapState.scale = Math.max(1, Math.min(5, nextScale));
+  applyMapTransform();
+}
+function resetMap(){
+  mapState.scale = 1; mapState.x = 0; mapState.y = 0; applyMapTransform();
+}
+function initMapZoom(){
+  const viewport = document.getElementById("mapViewport");
+  if (!viewport || viewport.dataset.ready) return;
+  viewport.dataset.ready = "1";
+  document.getElementById("mapZoomIn")?.addEventListener("click", () => setMapZoom(mapState.scale * 1.25));
+  document.getElementById("mapZoomOut")?.addEventListener("click", () => setMapZoom(mapState.scale / 1.25));
+  document.getElementById("mapZoomReset")?.addEventListener("click", resetMap);
+  viewport.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    setMapZoom(mapState.scale * (event.deltaY < 0 ? 1.15 : 1 / 1.15));
+  }, { passive:false });
+  viewport.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    mapState.dragging = true;
+    mapState.startX = event.clientX; mapState.startY = event.clientY;
+    mapState.baseX = mapState.x; mapState.baseY = mapState.y;
+    viewport.classList.add("dragging");
+    viewport.setPointerCapture?.(event.pointerId);
+  });
+  viewport.addEventListener("pointermove", (event) => {
+    if (!mapState.dragging) return;
+    mapState.x = mapState.baseX + event.clientX - mapState.startX;
+    mapState.y = mapState.baseY + event.clientY - mapState.startY;
+    applyMapTransform();
+  });
+  const stopDrag = (event) => {
+    if (!mapState.dragging) return;
+    mapState.dragging = false;
+    viewport.classList.remove("dragging");
+    viewport.releasePointerCapture?.(event.pointerId);
+  };
+  viewport.addEventListener("pointerup", stopDrag);
+  viewport.addEventListener("pointercancel", stopDrag);
+  viewport.addEventListener("dblclick", () => setMapZoom(mapState.scale * 1.5));
+  applyMapTransform();
+}
+
+/* ---------- Helpers ---------- */
+function toast(msg, isError){
+  const t = document.createElement("div");
+  t.className = "toast" + (isError ? " error" : "");
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+async function api(path, { method = "GET", body } = {}){
+  const headers = { "Content-Type": "application/json" };
+  if (state.token) headers.Authorization = "Bearer " + state.token;
+
+  const res = await fetch(API + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  let data = {};
+  try { data = await res.json(); } catch {}
+
+  if (!res.ok) {
+    if (res.status === 401) doLogout(false);
+    throw new Error(data.error || ("Erreur " + res.status));
+  }
+  return data;
+}
+
+function canEdit(){
+  return state.user && (state.user.role === "operateur_cta" || state.user.role === "admin");
+}
+function isAdmin(){
+  return state.user && state.user.role === "admin";
+}
+
+/* ---------- Connexion ---------- */
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const matricule = document.getElementById("loginMatricule").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const errSlot = document.getElementById("loginErrorSlot");
+  errSlot.innerHTML = "";
+
+  if (!matricule || !password){
+    errSlot.innerHTML = '<div class="auth-error">Merci de renseigner ton matricule et ton mot de passe.</div>';
+    return;
+  }
+
+  try{
+    const res = await fetch(API + "/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matricule, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errSlot.innerHTML = `<div class="auth-error">${data.error || "Connexion impossible."}</div>`;
+      return;
+    }
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem("cossim_token", state.token);
+    localStorage.setItem("cossim_user", JSON.stringify(state.user));
+    document.getElementById("loginForm").reset();
+    await enterApp();
+  }catch(err){
+    errSlot.innerHTML = `<div class="auth-error">Connexion au serveur impossible. Réessaie.</div>`;
+  }
+});
+
+function doLogout(redirect = true){
+  state.token = null;
+  state.user = null;
+  localStorage.removeItem("cossim_token");
+  localStorage.removeItem("cossim_user");
+  if (state.synInterTimer) clearInterval(state.synInterTimer);
+  if (state.synOptiqueTimer) clearInterval(state.synOptiqueTimer);
+  document.getElementById("appScreens").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+  if (redirect) toast("Déconnecté.");
+}
+document.getElementById("btnLogout").addEventListener("click", () => doLogout());
+
+/* ---------- Entrée dans l'application ---------- */
+async function enterApp(){
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("appScreens").classList.remove("hidden");
+  document.getElementById("tbUser").textContent =
+    `${state.user.matricule} — ${state.user.grade_libelle || state.user.grade_code} ${state.user.nom}`;
+
+  document.getElementById("navPersonnel").classList.toggle("hidden", !isAdmin());
+  document.getElementById("btnGoPersonnelCard").classList.toggle("hidden", !isAdmin());
+  document.getElementById("navPlanning").classList.toggle("hidden", !canEdit());
+  document.getElementById("btnGoPlanningCard").classList.toggle("hidden", !canEdit());
+
+  try{
+    const [g, s, f, c] = await Promise.all([api("/grades"), api("/services"), api("/fonctions"), api("/statut-couleurs")]);
+    state.grades = g.grades;
+    state.services = s.services;
+    state.fonctions = f.fonctions;
+    state.statutColors = { ...DEFAULT_STATUT_COLORS, ...c.colors };
+  }catch(err){ toast(err.message, true); }
+
+  populateMotifSelect();
+  initAdresseAutocomplete();
+  initMapZoom();
+
+  await showScreen("menu");
+}
+
+/* Reconnexion automatique si un token valide est déjà stocké */
+if (state.token && state.user){
+  enterApp().catch(() => doLogout(false));
+}
+
+/* ---------- Navigation entre écrans ---------- */
+const SCREENS = ["menu", "syninter", "intervention", "synoptique", "planning", "personnel"];
+async function showScreen(name){
+  SCREENS.forEach(s => {
+    document.getElementById("screen" + s.charAt(0).toUpperCase() + s.slice(1))
+      .classList.toggle("hidden", s !== name);
+  });
+  document.querySelectorAll(".tb-nav .tb-btn[data-screen]").forEach(b => {
+    b.classList.toggle("active", b.dataset.screen === name);
+  });
+
+  if (state.synInterTimer) { clearInterval(state.synInterTimer); state.synInterTimer = null; }
+  if (state.synOptiqueTimer) { clearInterval(state.synOptiqueTimer); state.synOptiqueTimer = null; }
+
+  try{
+    if (name === "menu") await loadMenu();
+    if (name === "syninter") await loadSynInter();
+    if (name === "synoptique") await loadSynoptique();
+    if (name === "planning") await loadPlanning();
+    if (name === "personnel") await loadPersonnel();
+  }catch(err){
+    toast(err.message, true);
+  }
+}
+
+document.getElementById("navHome").addEventListener("click", () => showScreen("menu"));
+document.getElementById("navSynInter").addEventListener("click", () => showScreen("syninter"));
+document.getElementById("navSynoptique").addEventListener("click", () => showScreen("synoptique"));
+document.getElementById("navPlanning").addEventListener("click", () => showScreen("planning"));
+document.getElementById("navPersonnel").addEventListener("click", () => showScreen("personnel"));
+document.getElementById("btnGoSynInterCard").addEventListener("click", () => showScreen("syninter"));
+document.getElementById("btnGoSynoptiqueCard").addEventListener("click", () => showScreen("synoptique"));
+document.getElementById("btnGoPlanningCard").addEventListener("click", () => showScreen("planning"));
+document.getElementById("btnGoPersonnelCard").addEventListener("click", () => showScreen("personnel"));
+document.getElementById("btnBackMenu").addEventListener("click", () => showScreen("menu"));
+
+/* ============================================================
+   ACCUEIL — historique des interventions clôturées
+   ============================================================ */
+async function loadMenu(){
+  document.getElementById("btnNewIntervention").classList.toggle("hidden", !canEdit());
+  const cloturees = await api("/interventions?statut=cloturee");
+  renderInterList("listCloturees", "countCloturees", cloturees.interventions.slice(0, 15));
+}
+
+function renderInterList(bodyId, countId, rows){
+  document.getElementById(countId).textContent = rows.length;
+  const el = document.getElementById(bodyId);
+  if (rows.length === 0){
+    el.innerHTML = '<div class="empty-note">Aucune intervention.</div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => `
+    <div class="inter-row" data-id="${r.id}">
+      <div class="inter-main">
+        <div class="inter-id">MISSION N°${r.id}</div>
+        <div class="inter-sub">${escapeHtml(r.sinistre || "Sinistre non renseigné")} — ${escapeHtml(r.commune || "")}</div>
+      </div>
+      <span class="pill ${r.statut}">${r.statut === "en_cours" ? "En cours" : "Clôturée"}</span>
+    </div>
+  `).join("");
+  el.querySelectorAll(".inter-row").forEach(row => {
+    row.addEventListener("click", () => openIntervention(Number(row.dataset.id)));
+  });
+}
+
+document.getElementById("btnNewIntervention").addEventListener("click", async () => {
+  try{
+    const res = await api("/interventions", { method: "POST", body: {} });
+    toast("Intervention créée.");
+    await openIntervention(res.intervention.id);
+  }catch(err){ toast(err.message, true); }
+});
+
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+/* ============================================================
+   SYNOPTIQUE DES INTERVENTIONS — board temps réel (en cours uniquement)
+   ============================================================ */
+async function loadSynInter(){
+  await refreshSynInter();
+  state.synInterTimer = setInterval(refreshSynInter, 30000);
+}
+
+async function refreshSynInter(){
+  const data = await api("/interventions?statut=en_cours");
+  const rows = data.interventions;
+  state.synInterRows = rows;
+  document.getElementById("synInterCount").textContent = rows.length;
+  const grid = document.getElementById("synInterGrid");
+
+  if (rows.length === 0){
+    grid.innerHTML = '<div class="board-empty"><div class="big">✅</div>Aucune intervention en cours actuellement.</div>';
+    return;
+  }
+
+  grid.innerHTML = rows.map(r => synRowHtml(r)).join("");
+
+  grid.querySelectorAll(".syn-row-head").forEach(head => {
+    head.addEventListener("click", () => openIntervention(Number(head.dataset.id)));
+  });
+  grid.querySelectorAll("[data-action]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = Number(btn.dataset.id);
+      const action = btn.dataset.action;
+      if (action === "cloturer"){
+        if (!confirm("Clôturer l'intervention " + id + " ?")) return;
+        try{
+          await api("/interventions", { method: "PUT", body: { id, statut: "cloturee" }});
+          toast("Intervention clôturée.");
+          await refreshSynInter();
+        }catch(err){ toast(err.message, true); }
+        return;
+      }
+      if (action === "engin"){
+        await openIntervention(id);
+        document.getElementById("enginsDispoGrid").scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (action === "services"){
+        await openIntervention(id);
+        document.getElementById("svcList").scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (action === "historique"){ openHistoriqueModal(id); return; }
+      if (action === "detail"){ await openIntervention(id); return; }
+    });
+  });
+}
+
+const BADGE_PALETTE = [
+  { bg: "var(--pink-soft)", fg: "var(--pink)" },
+  { bg: "var(--green-soft)", fg: "var(--green)" },
+  { bg: "var(--yellow-soft)", fg: "var(--yellow)" },
+  { bg: "var(--blue-soft)", fg: "var(--blue)" },
+  { bg: "var(--amber-soft)", fg: "var(--amber)" },
+];
+function badgeColor(str){
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  return BADGE_PALETTE[hash % BADGE_PALETTE.length];
+}
+
+function synRowHtml(r){
+  const ageMin = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 60000);
+  const ageClass = ageMin >= 45 ? "age-alert" : (ageMin >= 15 ? "age-warn" : "");
+  const h = Math.floor(ageMin / 60), m = ageMin % 60;
+  const ageLabel = h > 0 ? `${h}h${String(m).padStart(2,"0")}` : `${m} min`;
+  const debut = new Date(r.created_at);
+  const debutLabel = debut.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}) + " " +
+    debut.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+
+  // Voie et arrondissement affichés directement à côté du nom de rue / de la commune
+  // (pas de libellé "Voie :" / "Arrondissement :").
+  const voie = [r.type_voie, r.adresse].filter(Boolean).join(" ");
+  const communeAvecArr = [r.commune, r.arrondissement].filter(Boolean).join(" — ");
+  const lieu = [voie, communeAvecArr].filter(Boolean).join(", ");
+
+  const services = r.services_prevenus || [];
+  const engins = r.engins_engages || [];
+  const editable = canEdit();
+
+  const badgesHtml = services.map(s => {
+    const c = badgeColor(s);
+    return `<span class="syn-badge" style="background:${c.bg};color:${c.fg};">${escapeHtml(s)}</span>`;
+  }).join("");
+
+  const enginsHtml = engins.map(mm => {
+    return `<span class="syn-engin-chip" style="${statutChipStyle(mm.etat)}">${escapeHtml(mm.nom)}${mm.categorie ? `<span class="tag">${escapeHtml(mm.categorie)}</span>` : ""}</span>`;
+  }).join("");
+
+  return `
+    <div class="syn-row ${ageClass}">
+      <div class="syn-row-head" data-id="${r.id}">
+        <div class="syn-cell icon-cell">🔥</div>
+        <div class="syn-cell numero"><div class="lbl">Numéro</div><div class="val">${r.id}</div></div>
+        <div class="syn-cell"><div class="lbl">Début</div><div class="val">${debutLabel}</div><div class="syn-timer">⏱ ${ageLabel}</div></div>
+        <div class="syn-cell sinistre"><div class="lbl">Sinistre</div><div class="val">🚨 ${escapeHtml(r.motif || r.sinistre || "Non renseigné")}</div></div>
+        <div class="syn-cell"><div class="lbl">Lieu</div><div class="val">${escapeHtml(lieu || "—")}</div></div>
+        <div class="syn-cell"><div class="lbl">Observations</div><div class="val">${escapeHtml(r.observation || "—")}</div></div>
+      </div>
+      ${badgesHtml ? `<div class="syn-badges">${badgesHtml}</div>` : ""}
+      ${enginsHtml ? `<div class="syn-engins">${enginsHtml}</div>` : ""}
+      <div class="syn-actions">
+        ${editable ? `
+          <button type="button" class="syn-icon-btn ic-cloturer" data-action="cloturer" data-id="${r.id}" title="Clôturer">⊘</button>
+          <button type="button" class="syn-icon-btn ic-engin" data-action="engin" data-id="${r.id}" title="Ajouter un engin">➕</button>
+          <button type="button" class="syn-icon-btn ic-services" data-action="services" data-id="${r.id}" title="Services prévenus">🛡️</button>
+        ` : ""}
+        <button type="button" class="syn-icon-btn ic-historique" data-action="historique" data-id="${r.id}" title="Historique / retransmettre un message">🕘</button>
+        <button type="button" class="syn-icon-btn ic-detail" data-action="detail" data-id="${r.id}" title="Détail">ℹ️</button>
+      </div>
+    </div>`;
+}
+
+/* ============================================================
+   DÉTAIL D'UNE INTERVENTION
+   ============================================================ */
+async function openIntervention(id){
+  state.currentInterventionId = id;
+  selectedEnginsForInter.clear();
+  await showInterventionScreen();
+  await loadIntervention();
+}
+
+async function showInterventionScreen(){
+  if (state.synInterTimer) { clearInterval(state.synInterTimer); state.synInterTimer = null; }
+  if (state.synOptiqueTimer) { clearInterval(state.synOptiqueTimer); state.synOptiqueTimer = null; }
+  SCREENS.forEach(s => {
+    document.getElementById("screen" + s.charAt(0).toUpperCase() + s.slice(1)).classList.add("hidden");
+  });
+  document.getElementById("screenIntervention").classList.remove("hidden");
+}
+
+document.querySelectorAll(".tabbtn").forEach(btn => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+function switchTab(name){
+  document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  ["info","engagement","details"].forEach(t => {
+    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1))
+      .classList.toggle("hidden", t !== name);
+  });
+}
+
+async function loadIntervention(){
+  const data = await api(`/interventions?id=${state.currentInterventionId}`);
+  const inter = data.intervention;
+
+  document.getElementById("interNum").textContent = inter.id;
+  document.getElementById("interDate").textContent =
+    new Date(inter.created_at).toLocaleString("fr-FR");
+
+  fMotif.value = inter.motif || inter.sinistre || "";
+  fObservation.value = inter.observation || "";
+  fAdresse.value = inter.adresse || "";
+  fCommune.value = inter.commune || "";
+  fArrondissement.value = inter.arrondissement || "";
+  fTypeVoie.value = inter.type_voie || "";
+  fEtare.value = inter.etare || "";
+  fConsignes.value = inter.consignes || "";
+  fAppelant.value = inter.appelant || "";
+
+  const editable = canEdit() && inter.statut === "en_cours";
+  [fMotif,fObservation,fAdresse,fCommune,fEtare,fConsignes,fAppelant].forEach(f => f.disabled = !editable);
+  [fArrondissement,fTypeVoie].forEach(f => f.disabled = true);
+  document.getElementById("btnSaveIntervention").classList.toggle("hidden", !editable);
+  document.getElementById("btnCloturer").classList.toggle("hidden", !editable);
+
+  renderServices(data.services);
+  await loadEnginsForIntervention();
+  renderMoyens(data.moyens, editable);
+  renderMotifSuggestions();
+}
+
+/* ---------- Motif d'intervention + suggestions d'engins ---------- */
+function normalizeSearch(value){
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+function populateMotifSelect(){
+  const input = document.getElementById("fMotif");
+  const list = document.getElementById("motifSuggestions");
+  if (!input || input.dataset.ready) return;
+  input.dataset.ready = "1";
+
+  const render = () => {
+    const q = normalizeSearch(input.value);
+    const matches = MOTIFS.filter(mo => !q || normalizeSearch(mo.m).includes(q)).slice(0, 12);
+    list.innerHTML = matches.map(mo =>
+      `<div class="autocomplete-item" data-value="${escapeHtml(mo.m)}">
+         <strong>${escapeHtml(mo.m)}</strong>
+         <small>${escapeHtml(MOTIF_CAT_LABEL[mo.c] || mo.c)}</small>
+       </div>`).join("");
+    list.classList.toggle("hidden", matches.length === 0 || !q);
+    list.querySelectorAll(".autocomplete-item").forEach(item => {
+      item.addEventListener("mousedown", e => {
+        e.preventDefault();
+        input.value = item.dataset.value;
+        list.classList.add("hidden");
+        renderMotifSuggestions();
+        loadEnginsForIntervention().catch(err => toast(err.message, true));
+      });
+    });
+  };
+
+  input.addEventListener("input", () => {
+    render();
+    renderMotifSuggestions();
+  });
+  input.addEventListener("focus", render);
+  input.addEventListener("blur", () => setTimeout(() => list.classList.add("hidden"), 180));
+}
+
+function renderMotifSuggestions(){
+  const card = document.getElementById("motifSuggestCard");
+  const chipsEl = document.getElementById("motifSuggestChips");
+  if (!card || !chipsEl) return;
+  const label = document.getElementById("fMotif").value;
+  const motif = MOTIFS.find(mo => mo.m === label);
+  if (!motif){ card.style.display = "none"; return; }
+
+  const cats = extractEnginsFromReponse(motif.r);
+  if (cats.length === 0){ card.style.display = "none"; return; }
+
+  const KNOWN_CATS = new Set(state.engins.map(e => e.categorie));
+  chipsEl.innerHTML = cats.map(cat => {
+    const dispoCount = state.engins.filter(e => e.categorie === cat && isEngineAvailable(e)).length;
+    const known = KNOWN_CATS.has(cat);
+    const cls = dispoCount > 0 ? "dispo" : (known ? "" : "absent");
+    const note = dispoCount > 0 ? ` (${dispoCount} dispo)` : (known ? " (0 dispo)" : "");
+    return `<span class="suggest-chip ${cls}">${escapeHtml(cat)}${note}</span>`;
+  }).join("");
+  card.style.display = "";
+}
+
+/* ---------- Autocomplétion des rues / adresses ---------- */
+function initAdresseAutocomplete(){
+  const input = document.getElementById("fAdresse");
+  const commune = document.getElementById("fCommune");
+  const arrondissement = document.getElementById("fArrondissement");
+  const typeVoie = document.getElementById("fTypeVoie");
+  const list = document.getElementById("adresseSuggestions");
+  if (!input || !list || input.dataset.ready) return;
+  input.dataset.ready = "1";
+  let timer = null;
+  let lastQuery = "";
+
+  const render = (rows) => {
+    list.innerHTML = rows.map(r => `
+      <div class="autocomplete-item" data-id="${r.id}" data-nom="${escapeHtml(r.nom)}" data-type-voie="${escapeHtml(r.type_voie || "")}" data-commune="${escapeHtml(r.commune || "")}" data-arrondissement="${escapeHtml(r.arrondissement || "")}">
+        <strong>${escapeHtml(r.nom_complet || r.nom)}</strong>
+        <small>${escapeHtml([r.commune, r.arrondissement].filter(Boolean).join(" — "))}</small>
+      </div>`).join("");
+    list.classList.toggle("hidden", rows.length === 0);
+    list.querySelectorAll(".autocomplete-item").forEach(item => {
+      item.addEventListener("mousedown", e => {
+        e.preventDefault();
+        const numberMatch = input.value.match(/^\s*(\d+\s*(?:bis|ter|quater)?\s*)/i);
+        input.value = (numberMatch ? numberMatch[1] : "") + item.dataset.nom;
+        if (item.dataset.commune) commune.value = item.dataset.commune;
+        arrondissement.value = item.dataset.arrondissement || "";
+        typeVoie.value = item.dataset.typeVoie || "";
+        list.classList.add("hidden");
+      });
+    });
+  };
+
+  input.addEventListener("input", () => {
+    // Toute modification manuelle de l'adresse invalide les métadonnées
+    // précédemment sélectionnées ; elles seront renseignées à nouveau
+    // lors du choix d'une suggestion.
+    arrondissement.value = "";
+    typeVoie.value = "";
+    clearTimeout(timer);
+    const raw = input.value.trim();
+    const q = raw.replace(/^\s*\d+\s*(?:bis|ter|quater)?\s*/i, "").trim();
+    if (q.length < 2){
+      list.classList.add("hidden");
+      return;
+    }
+    if (q === lastQuery) return;
+    lastQuery = q;
+    timer = setTimeout(async () => {
+      try {
+        const data = await api("/rues?q=" + encodeURIComponent(q));
+        render(data.rues || []);
+      } catch (err) {
+        console.warn("Autocomplétion rues:", err);
+        list.classList.add("hidden");
+      }
+    }, 180);
+  });
+  input.addEventListener("focus", () => {
+    if (input.value.trim().length >= 2) input.dispatchEvent(new Event("input"));
+  });
+  input.addEventListener("blur", () => setTimeout(() => list.classList.add("hidden"), 180));
+}
+
+function renderServices(prevenus){
+  const doneIds = new Set(prevenus.map(p => p.id));
+  const el = document.getElementById("svcList");
+  el.innerHTML = state.services.map(s => {
+    const done = doneIds.has(s.id);
+    const prev = prevenus.find(p => p.id === s.id);
+    return `
+      <div class="svc-item ${done ? "done" : ""}" data-id="${s.id}">
+        <span class="nom">${done ? "✅ " : ""}${escapeHtml(s.nom)}</span>
+        <span class="time">${done ? new Date(prev.heure_prevenu).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}) : (canEdit() ? '<button class="btn btn-secondary btn-sm svc-toggle">Prévenir</button>' : "")}</span>
+      </div>`;
+  }).join("");
+  el.querySelectorAll(".svc-toggle").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const service_id = Number(btn.closest(".svc-item").dataset.id);
+      try{
+        // Les informations saisies peuvent ne pas encore être enregistrées.
+        // On les sauvegarde avant de recharger l'intervention après le "Prévenir".
+        await saveInterventionFields(false);
+        await api("/intervention-services", { method: "POST", body: {
+          intervention_id: state.currentInterventionId, service_id
+        }});
+        await loadIntervention();
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+}
+
+async function saveInterventionFields(showToast = true){
+  await api("/interventions", { method: "PUT", body: {
+    id: state.currentInterventionId,
+    motif: fMotif.value,
+    observation: fObservation.value,
+    adresse: fAdresse.value,
+    commune: fCommune.value,
+    arrondissement: fArrondissement.value,
+    type_voie: fTypeVoie.value,
+    etare: fEtare.value,
+    consignes: fConsignes.value,
+    appelant: fAppelant.value,
+  }});
+  if (showToast) toast("Enregistré.");
+}
+
+document.getElementById("btnSaveIntervention").addEventListener("click", async () => {
+  try{
+    await saveInterventionFields(true);
+  }catch(err){ toast(err.message, true); }
+});
+
+document.getElementById("btnCloturer").addEventListener("click", async () => {
+  if (!confirm("Clôturer cette intervention ?")) return;
+  try{
+    await api("/interventions", { method: "PUT", body: { id: state.currentInterventionId, statut: "cloturee" }});
+    toast("Intervention clôturée.");
+    await showScreen("menu");
+  }catch(err){ toast(err.message, true); }
+});
+
+/* ---------- Engagement de moyens ---------- */
+let selectedEnginsForInter = new Set();
+
+function updateDiffuserButton(){
+  const btn = document.getElementById("btnDiffuser");
+  const countEl = document.getElementById("enginSelCount");
+  if (!btn) return;
+  const n = selectedEnginsForInter.size;
+  btn.disabled = n === 0;
+  if (countEl) countEl.textContent = n === 0 ? "Aucun engin sélectionné" : `${n} engin${n > 1 ? "s" : ""} sélectionné${n > 1 ? "s" : ""} — prêt à diffuser`;
+}
+
+async function loadEnginsForIntervention(){
+  const data = await api("/engins");
+  state.engins = data.engins;
+  const dispo = state.engins.filter(isEngineAvailable);
+  // Un engin déjà engagé ne doit plus rester sélectionné.
+  const dispoIds = new Set(dispo.map(e => e.id));
+  selectedEnginsForInter = new Set([...selectedEnginsForInter].filter(id => dispoIds.has(id)));
+
+  const grid = document.getElementById("enginsDispoGrid");
+  if (!canEdit()){
+    grid.innerHTML = '<div class="empty-note">Lecture seule pour ton rôle.</div>';
+    updateDiffuserButton();
+    return;
+  }
+  const motif = MOTIFS.find(mo => mo.m === document.getElementById("fMotif").value);
+  const suggested = motif ? new Set(extractEnginsFromReponse(motif.r)) : new Set();
+  grid.innerHTML = dispo.map(e => `
+    <button type="button" class="engin-pick ${selectedEnginsForInter.has(e.id) ? "selected" : ""}" data-id="${e.id}"
+      style="${suggested.has(e.categorie) && !selectedEnginsForInter.has(e.id) ? "box-shadow:0 0 0 2px var(--gold) inset;" : ""}"
+      title="${suggested.has(e.categorie) ? "Suggéré par le motif sélectionné" : ""}">
+      ${escapeHtml(e.nom)}
+    </button>`).join("")
+    || '<div class="empty-note">Aucun engin disponible actuellement.</div>';
+  grid.querySelectorAll(".engin-pick").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.id);
+      if (selectedEnginsForInter.has(id)) selectedEnginsForInter.delete(id);
+      else selectedEnginsForInter.add(id);
+      btn.classList.toggle("selected", selectedEnginsForInter.has(id));
+      updateDiffuserButton();
+    });
+  });
+  updateDiffuserButton();
+}
+
+document.getElementById("btnDiffuser").addEventListener("click", async () => {
+  if (selectedEnginsForInter.size === 0){
+    toast("Sélectionne au moins un engin avant de diffuser.", true);
+    return;
+  }
+  try{
+    for (const engin_id of selectedEnginsForInter){
+      await api("/intervention-engins", { method: "POST", body: {
+        intervention_id: state.currentInterventionId, engin_id
+      }});
+    }
+    const nb = selectedEnginsForInter.size;
+    selectedEnginsForInter.clear();
+    await loadIntervention();
+    toast(`${nb} engin${nb > 1 ? "s" : ""} diffusé${nb > 1 ? "s" : ""} en intervention (Départ / En route).`);
+  }catch(err){ toast(err.message, true); }
+});
+
+
+function renderMoyens(moyens, editable){
+  const rowsHtml = moyens.map(m => `
+    <tr>
+      <td>${escapeHtml(m.engin_nom)}</td>
+      <td>${editable ? `
+        <select class="etat-select" data-id="${m.id}">
+          ${vehicleStatusOptions(m.etat)}
+        </select>` : etatLabel(m.etat)}
+      </td>
+      <td>${new Date(m.heure_engagement).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</td>
+      <td>${m.heure_disponible ? new Date(m.heure_disponible).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}) : "—"}</td>
+      ${editable ? `<td><button class="btn btn-danger btn-sm moyen-remove" data-id="${m.id}">Retirer</button></td>` : ""}
+    </tr>`).join("");
+
+  document.getElementById("moyensBody").innerHTML =
+    rowsHtml || '<tr><td colspan="5" class="empty-note">Aucun engin engagé pour l\'instant.</td></tr>';
+  document.getElementById("moyensBodyReadonly").innerHTML =
+    moyens.map(m => `
+      <tr>
+        <td>${escapeHtml(m.engin_nom)}</td>
+        <td>${etatLabel(m.etat)}</td>
+        <td>${new Date(m.heure_engagement).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</td>
+        <td>${m.heure_disponible ? new Date(m.heure_disponible).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}) : "—"}</td>
+      </tr>`).join("") || '<tr><td colspan="4" class="empty-note">Aucun engin engagé.</td></tr>';
+
+  document.querySelectorAll(".etat-select").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      try{
+        await api("/intervention-engins", { method: "PUT", body: { id: Number(sel.dataset.id), etat: sel.value }});
+        await loadIntervention();
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+  document.querySelectorAll(".moyen-remove").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      try{
+        await api("/intervention-engins?id=" + btn.dataset.id, { method: "DELETE" });
+        await loadIntervention();
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+}
+
+function etatLabel(v){
+  if (v === "engage") return "En route";
+  if (v === "sur_place") return "Sur les lieux";
+  if (v === "disponible") return "Disponible Radio";
+  return vehicleStatusLabel(v);
+}
+
+/* ============================================================
+   HISTORIQUE / MAIN COURANTE (popup) + retransmission de messages
+   ============================================================ */
+document.getElementById("btnHistorique").addEventListener("click", () => {
+  openHistoriqueModal(state.currentInterventionId);
+});
+
+async function openHistoriqueModal(interventionId){
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-backdrop" id="histoBackdrop">
+      <div class="modal modal-wide">
+        <div class="mc-toolbar">
+          <h3 style="margin:0;">Historique de l'intervention</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" id="histoRefresh">↻ Actualiser</button>
+            <button class="btn btn-secondary btn-sm" id="histoClose">Fermer</button>
+          </div>
+        </div>
+        <div id="histoHeader"></div>
+        <div id="histoTableWrap"></div>
+        <div id="histoCompose"></div>
+      </div>
+    </div>`;
+
+  document.getElementById("histoClose").addEventListener("click", closeModal);
+  document.getElementById("histoBackdrop").addEventListener("click", (e) => { if (e.target.id === "histoBackdrop") closeModal(); });
+  document.getElementById("histoRefresh").addEventListener("click", () => loadHistorique(interventionId));
+
+  await loadHistorique(interventionId);
+}
+
+async function loadHistorique(interventionId){
+  try{
+    const [interData, msgData] = await Promise.all([
+      api(`/interventions?id=${interventionId}`),
+      api(`/intervention-messages?intervention_id=${interventionId}`),
+    ]);
+    const inter = interData.intervention;
+    const moyens = interData.moyens || [];
+    const messages = msgData.messages || [];
+
+    const lieu = [inter.type_voie, inter.adresse].filter(Boolean).join(" ") ||
+      inter.adresse || "Lieu non renseigné";
+    const lieuLine = [lieu, inter.commune, inter.arrondissement ? `${inter.arrondissement}ème` : ""]
+      .filter(Boolean).join(" - ");
+
+    document.getElementById("histoHeader").innerHTML = `
+      <div class="mc-header">
+        <div class="mc-titre">${interventionId} - ${escapeHtml((inter.motif || inter.sinistre || "Sinistre non renseigné").toUpperCase())}</div>
+        <div class="mc-lieu">${escapeHtml(lieuLine.toUpperCase())}</div>
+        ${inter.observation ? `<div class="mc-obs">${escapeHtml(inter.observation)}</div>` : ""}
+      </div>`;
+
+    document.getElementById("histoTableWrap").innerHTML = `
+      <table class="mc-table">
+        <thead><tr><th>Horodatage</th><th>Contenu</th></tr></thead>
+        <tbody>
+          ${messages.length === 0
+            ? '<tr><td colspan="2" class="mc-empty">Aucun message pour l\'instant.</td></tr>'
+            : messages.map(m => `
+              <tr>
+                <td class="mc-horo">
+                  ${new Date(m.created_at).toLocaleDateString("fr-FR")} à ${new Date(m.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                  <span class="mc-auteur">${escapeHtml(m.auteur)}</span>
+                </td>
+                <td class="mc-contenu">${escapeHtml(m.contenu)}</td>
+              </tr>`).join("")
+          }
+        </tbody>
+      </table>`;
+
+    const composeWrap = document.getElementById("histoCompose");
+    const engagesActifs = moyens.filter(m => m.etat !== "rentre");
+    if (canEdit() && inter.statut === "en_cours" && engagesActifs.length > 0){
+      composeWrap.innerHTML = `
+        <div class="mc-compose">
+          <select id="histoEnginSelect">
+            ${engagesActifs.map(m => `<option value="${escapeHtml(m.engin_nom)}">${escapeHtml(m.engin_nom)}</option>`).join("")}
+          </select>
+          <input id="histoMessageInput" placeholder="Retransmettre le message de cet engin…">
+          <button class="btn btn-primary btn-sm" id="histoSend">Envoyer</button>
+        </div>`;
+      const send = async () => {
+        const engin = document.getElementById("histoEnginSelect").value;
+        const texte = document.getElementById("histoMessageInput").value.trim();
+        if (!texte) return;
+        try{
+          await api("/intervention-messages", { method: "POST", body: {
+            intervention_id: interventionId,
+            contenu: `${engin} - ${texte.toUpperCase()}`,
+          }});
+          document.getElementById("histoMessageInput").value = "";
+          await loadHistorique(interventionId);
+          refreshSynInter().catch(() => {});
+        }catch(err){ toast(err.message, true); }
+      };
+      document.getElementById("histoSend").addEventListener("click", send);
+      document.getElementById("histoMessageInput").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+    } else {
+      composeWrap.innerHTML = engagesActifs.length === 0
+        ? '<div class="section-note">Aucun engin actuellement engagé à qui attribuer un message.</div>'
+        : "";
+    }
+  }catch(err){ toast(err.message, true); }
+}
+
+/* ============================================================
+   SYNOPTIQUE DES ENGINS (consultation ou édition selon le rôle)
+   ============================================================ */
+async function loadSynoptique(){
+  const [data, colorsData] = await Promise.all([api("/engins"), api("/statut-couleurs")]);
+  state.engins = data.engins;
+  state.statutColors = { ...DEFAULT_STATUT_COLORS, ...colorsData.colors };
+  const editable = canEdit();
+
+  document.getElementById("synCount").textContent = state.engins.length + " ENGINS";
+  document.getElementById("addEnginForm").classList.toggle("hidden", !editable);
+  document.getElementById("synReadonlyNote").classList.toggle("hidden", editable);
+  document.getElementById("statutColorsCard").classList.toggle("hidden", !editable);
+  if (editable) renderStatutColorsForm();
+
+  document.getElementById("synGrid").innerHTML = state.engins.map(e => `
+    <div class="engine-chip" data-id="${e.id}" style="${statutChipStyle(e.statut)}">
+      <div class="nom">${escapeHtml(e.nom)}</div>
+      ${editable ? `
+        <div class="chip-actions"><button class="btn btn-danger btn-sm engin-delete" data-id="${e.id}">Supprimer</button></div>
+      ` : ""}
+    </div>
+  `).join("");
+
+  // Actualisation automatique : les changements de statut opérés ailleurs
+  // (ex. depuis l'écran d'intervention) apparaissent ici sans rechargement.
+  // Le synoptique des engins reste une vue de consultation : le statut ne
+  // se change pas depuis cet écran, seule la couleur (personnalisable) informe.
+  if (state.synOptiqueTimer) { clearInterval(state.synOptiqueTimer); state.synOptiqueTimer = null; }
+  state.synOptiqueTimer = setInterval(async () => {
+    try{
+      const d = await api("/engins");
+      state.engins = d.engins;
+      state.engins.forEach(e => {
+        const chip = document.querySelector(`.engine-chip[data-id="${e.id}"]`);
+        if (!chip) return;
+        chip.setAttribute("style", statutChipStyle(e.statut));
+      });
+    }catch(err){ /* silencieux : pas de gêne à l'utilisateur */ }
+  }, 15000);
+
+  if (editable){
+    document.querySelectorAll(".engin-delete").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Supprimer cet engin du synoptique ?")) return;
+        try{
+          await api("/engins?id=" + btn.dataset.id, { method: "DELETE" });
+          await loadSynoptique();
+        }catch(err){ toast(err.message, true); }
+      });
+    });
+  }
+}
+
+/* ---------- Personnalisation des couleurs de statut (admin) ---------- */
+function renderStatutColorsForm(){
+  document.getElementById("statutColorsGrid").innerHTML = VEHICLE_STATUSES.map(([code, label]) => {
+    const hex = statutColor(code);
+    return `
+      <div class="statut-color-row">
+        <span class="statut-color-swatch" style="${statutChipStyle(code)}">${escapeHtml(label)}</span>
+        <input type="color" class="statut-color-input" data-code="${code}" value="${hex}">
+        <button type="button" class="btn btn-secondary btn-sm statut-color-reset" data-code="${code}" title="Réinitialiser">↺</button>
+      </div>`;
+  }).join("");
+
+  document.querySelectorAll(".statut-color-input").forEach(inp => {
+    inp.addEventListener("input", () => {
+      inp.previousElementSibling.setAttribute("style", `background:${inp.value};color:${contrastText(inp.value)};`);
+    });
+  });
+  document.querySelectorAll(".statut-color-reset").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const code = btn.dataset.code;
+      const input = document.querySelector(`.statut-color-input[data-code="${code}"]`);
+      input.value = DEFAULT_STATUT_COLORS[code];
+      input.dispatchEvent(new Event("input"));
+    });
+  });
+}
+
+document.getElementById("btnSaveStatutColors").addEventListener("click", async () => {
+  const colors = {};
+  document.querySelectorAll(".statut-color-input").forEach(inp => { colors[inp.dataset.code] = inp.value; });
+  try{
+    await api("/statut-couleurs", { method: "PUT", body: { colors } });
+    toast("Couleurs enregistrées.");
+    await loadSynoptique();
+  }catch(err){ toast(err.message, true); }
+});
+
+function statutLabel(v){
+  return vehicleStatusLabel(v);
+}
+
+document.getElementById("addEnginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nom = document.getElementById("newEnginNom").value.trim();
+  const categorie = document.getElementById("newEnginCategorie").value.trim();
+  if (!nom) return;
+  try{
+    await api("/engins", { method: "POST", body: { nom, categorie } });
+    document.getElementById("addEnginForm").reset();
+    await loadSynoptique();
+    toast("Engin ajouté.");
+  }catch(err){ toast(err.message, true); }
+});
+
+/* ============================================================
+   PLANNING / FEUILLE DE GARDE
+   ============================================================ */
+async function loadPlanning(){
+  const dateInput = document.getElementById("planningDate");
+  if (!dateInput.dataset.wired){
+    dateInput.addEventListener("change", () => {
+      state.planningDate = dateInput.value || new Date().toISOString().slice(0, 10);
+      renderPlanning();
+    });
+    dateInput.dataset.wired = "1";
+  }
+  dateInput.value = state.planningDate;
+
+  const editable = canEdit();
+  document.getElementById("planningReadonlyNote").classList.toggle("hidden", editable);
+  document.getElementById("planningAddSep").classList.toggle("hidden", !editable);
+  document.getElementById("planningAddEnginSelect").classList.toggle("hidden", !editable);
+  document.getElementById("btnPlanningAddEngin").classList.toggle("hidden", !editable);
+
+  const [enginsData, persData] = await Promise.all([api("/engins"), api("/personnel")]);
+  state.engins = enginsData.engins;
+  state.personnelList = persData.personnel.filter(p => p.actif);
+
+  await renderPlanning();
+}
+
+async function renderPlanning(){
+  const editable = canEdit();
+  const [data, armedData] = await Promise.all([
+    api("/planning?date=" + encodeURIComponent(state.planningDate)),
+    api("/planning-engins?date=" + encodeURIComponent(state.planningDate)),
+  ]);
+  const affectMap = {};
+  data.affectations.forEach(a => { affectMap[a.engin_id + ":" + a.poste_code] = a; });
+
+  const armedIds = new Set(armedData.engin_ids);
+  // Seuls les engins présents au synoptique ET explicitement armés pour ce
+  // jour apparaissent dans la feuille de garde.
+  const enginsArmes = state.engins
+    .filter(e => armedIds.has(e.id))
+    .sort((a, b) => (a.ordre - b.ordre) || a.nom.localeCompare(b.nom));
+
+  document.getElementById("planningEnginCount").textContent = enginsArmes.length + " ENGINS";
+
+  // Sélecteur "ajouter un véhicule" : uniquement les engins du synoptique pas encore armés ce jour-là.
+  const dispoAAjouter = state.engins
+    .filter(e => !armedIds.has(e.id))
+    .sort((a, b) => (a.ordre - b.ordre) || a.nom.localeCompare(b.nom));
+  const addSelect = document.getElementById("planningAddEnginSelect");
+  addSelect.innerHTML = dispoAAjouter.length
+    ? dispoAAjouter.map(e => `<option value="${e.id}">${escapeHtml(e.nom)}${e.categorie ? " (" + escapeHtml(e.categorie) + ")" : ""}</option>`).join("")
+    : '<option value="">— Tous les engins sont déjà armés —</option>';
+  document.getElementById("btnPlanningAddEngin").disabled = dispoAAjouter.length === 0;
+
+  document.getElementById("planningGrid").innerHTML = enginsArmes.map(e => {
+    const postes = POSTES_PAR_CATEGORIE[e.categorie];
+    const rowsHtml = postes ? postes.map(([code, label]) => {
+      const affect = affectMap[e.id + ":" + code];
+      const currentId = affect ? affect.personnel_id : null;
+      const eligibles = state.personnelList.filter(p => (p.fonctions || []).includes(code));
+      const options = ['<option value="">— Non affecté —</option>']
+        .concat(eligibles.map(p => `<option value="${p.id}" ${p.id === currentId ? "selected" : ""}>${escapeHtml(p.nom)} (${escapeHtml(p.grade_libelle)})</option>`));
+      return `
+        <div class="planning-poste-row">
+          <label>${escapeHtml(label)}</label>
+          <select class="planning-select ${currentId ? "filled" : ""}" data-engin="${e.id}" data-poste="${escapeHtml(code)}" ${editable ? "" : "disabled"}>
+            ${options.join("")}
+          </select>
+        </div>`;
+    }).join("") : '<div class="planning-no-postes">Aucun poste défini pour cette catégorie (voir Fonctions dans Personnel).</div>';
+
+    return `
+      <div class="planning-engin-card">
+        <div class="planning-engin-head">
+          <div class="planning-engin-head-tags">
+            <span class="nom">${escapeHtml(e.nom)}</span>
+            ${e.categorie ? catChip(e.categorie) : ""}
+          </div>
+          ${editable ? `<button type="button" class="planning-remove-btn" data-id="${e.id}" title="Retirer de la garde">Retirer</button>` : ""}
+        </div>
+        ${rowsHtml}
+      </div>`;
+  }).join("") || '<div class="empty-note">Aucun véhicule armé pour cette garde. Ajoute-en un ci-dessus depuis les engins présents au synoptique.</div>';
+
+  if (editable){
+    document.querySelectorAll(".planning-select").forEach(sel => {
+      sel.addEventListener("change", async () => {
+        const engin_id = Number(sel.dataset.engin);
+        const poste_code = sel.dataset.poste;
+        const personnel_id = sel.value ? Number(sel.value) : null;
+        try{
+          await api("/planning", { method: "PUT", body: {
+            date: state.planningDate, engin_id, poste_code, personnel_id
+          }});
+          sel.classList.toggle("filled", !!personnel_id);
+          toast("Planning mis à jour.");
+        }catch(err){ toast(err.message, true); }
+      });
+    });
+    document.querySelectorAll(".planning-remove-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Retirer ce véhicule de la garde du " + state.planningDate + " ? Ses affectations de poste pour ce jour seront supprimées.")) return;
+        try{
+          await api("/planning-engins?date=" + encodeURIComponent(state.planningDate) + "&engin_id=" + btn.dataset.id, { method: "DELETE" });
+          toast("Véhicule retiré de la garde.");
+          await renderPlanning();
+        }catch(err){ toast(err.message, true); }
+      });
+    });
+  }
+}
+
+document.getElementById("btnPlanningAddEngin").addEventListener("click", async () => {
+  const select = document.getElementById("planningAddEnginSelect");
+  const engin_id = Number(select.value);
+  if (!engin_id) return;
+  try{
+    await api("/planning-engins", { method: "POST", body: { date: state.planningDate, engin_id } });
+    toast("Véhicule armé pour cette garde.");
+    await renderPlanning();
+  }catch(err){ toast(err.message, true); }
+});
+
+/* ============================================================
+   GESTION DU PERSONNEL (admin uniquement)
+   ============================================================ */
+async function loadPersonnel(){
+  if (!isAdmin()) { await showScreen("menu"); return; }
+  const [pers, gr, fo] = await Promise.all([api("/personnel"), api("/grades"), api("/fonctions")]);
+  state.grades = gr.grades;
+  state.fonctions = fo.fonctions;
+  renderPersonnelTable(pers.personnel);
+  renderGrades();
+  renderFonctions();
+}
+
+function renderFonctions(){
+  const gradeOptions = (currentCode) => ['<option value="">— Aucun —</option>']
+    .concat(state.grades.map(g => `<option value="${g.code}" ${g.code === currentCode ? "selected" : ""}>${escapeHtml(g.libelle)} (${g.code})</option>`))
+    .join("");
+
+  document.getElementById("fonctionsBody").innerHTML = state.fonctions.map(f => `
+    <tr>
+      <td class="code">${escapeHtml(f.code)}<div style="color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:11.5px;">${escapeHtml(f.libelle)}</div></td>
+      <td>${f.categorie ? catChip(f.categorie) : "—"}</td>
+      <td><select class="fonc-seuil-select" data-id="${f.id}">${gradeOptions(f.seuil_grade_code)}</select></td>
+    </tr>
+  `).join("");
+
+  document.querySelectorAll(".fonc-seuil-select").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      try{
+        await api("/fonctions", { method: "PUT", body: { id: Number(sel.dataset.id), seuil_grade_code: sel.value || "" } });
+        toast("Grade seuil mis à jour.");
+        await loadPersonnel();
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+}
+
+function renderPersonnelTable(rows){
+  document.getElementById("persBody").innerHTML = rows.map(p => `
+    <tr class="${p.actif ? "" : "inactive-row"}">
+      <td>${escapeHtml(p.matricule)}</td>
+      <td>${escapeHtml(p.nom)}</td>
+      <td>${escapeHtml(p.grade_libelle)}</td>
+      <td><div class="fonc-tags">${(p.fonctions || []).map(f => `<span class="fonc-tag">${escapeHtml(f)}</span>`).join("") || '<span style="color:var(--muted);font-size:11px;">—</span>'}</div></td>
+      <td><span class="role-pill ${p.role}">${roleLabel(p.role)}</span></td>
+      <td>${p.actif ? "Actif" : "Désactivé"}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-secondary btn-sm pers-edit" data-id="${p.id}">Modifier</button>
+        <button class="btn btn-danger btn-sm pers-delete" data-id="${p.id}">Supprimer</button>
+      </td>
+    </tr>
+  `).join("");
+
+  document.querySelectorAll(".pers-edit").forEach(btn => {
+    btn.addEventListener("click", () => openPersonnelModal(rows.find(r => r.id === Number(btn.dataset.id))));
+  });
+  document.querySelectorAll(".pers-delete").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Supprimer définitivement cette personne ?")) return;
+      try{
+        await api("/personnel?id=" + btn.dataset.id, { method: "DELETE" });
+        await loadPersonnel();
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+}
+function roleLabel(r){ return { agent:"Agent", operateur_cta:"Opérateur COSSIM", admin:"Admin" }[r] || r; }
+
+document.getElementById("btnAddPersonnel").addEventListener("click", () => openPersonnelModal(null));
+
+function openPersonnelModal(person){
+  const isEdit = !!person;
+  const gradeOptions = state.grades.map(g =>
+    `<option value="${g.code}" ${person && person.grade_code===g.code?"selected":""}>${escapeHtml(g.libelle)} (${g.code})</option>`
+  ).join("");
+
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-backdrop" id="persModalBackdrop">
+      <div class="modal">
+        <h3>${isEdit ? "Modifier" : "Ajouter"} une personne</h3>
+        <div class="field"><label>Matricule</label><input id="mMatricule" value="${isEdit ? escapeHtml(person.matricule) : ""}" ${isEdit ? "disabled" : ""}></div>
+        <div class="field"><label>Nom</label><input id="mNom" value="${isEdit ? escapeHtml(person.nom) : ""}"></div>
+        <div class="field"><label>Grade</label><select id="mGrade">${gradeOptions}</select></div>
+        <div class="field"><label>Rôle</label>
+          <select id="mRole">
+            <option value="agent" ${person && person.role==="agent"?"selected":""}>Agent</option>
+            <option value="operateur_cta" ${person && person.role==="operateur_cta"?"selected":""}>Opérateur COSSIM</option>
+            <option value="admin" ${person && person.role==="admin"?"selected":""}>Admin</option>
+          </select>
+        </div>
+        ${isEdit ? `<div class="field"><label><input type="checkbox" id="mActif" ${person.actif?"checked":""}> Compte actif</label></div>` : ""}
+        <div class="field"><label>${isEdit ? "Nouveau mot de passe (laisser vide pour ne pas changer)" : "Mot de passe"}</label><input type="password" id="mPassword"></div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="mCancel">Annuler</button>
+          <button class="btn btn-primary" id="mSave">${isEdit ? "Enregistrer" : "Ajouter"}</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById("mCancel").addEventListener("click", closeModal);
+  document.getElementById("persModalBackdrop").addEventListener("click", (e) => { if (e.target.id === "persModalBackdrop") closeModal(); });
+
+  document.getElementById("mSave").addEventListener("click", async () => {
+    const nom = document.getElementById("mNom").value.trim();
+    const grade_code = document.getElementById("mGrade").value;
+    const role = document.getElementById("mRole").value;
+    const password = document.getElementById("mPassword").value;
+
+    try{
+      if (isEdit){
+        await api("/personnel", { method: "PUT", body: {
+          id: person.id, nom, grade_code, role,
+          actif: document.getElementById("mActif").checked,
+          password: password || undefined,
+        }});
+      } else {
+        const matricule = document.getElementById("mMatricule").value.trim();
+        if (!matricule || !nom || !password) { toast("Matricule, nom et mot de passe sont requis.", true); return; }
+        await api("/personnel", { method: "POST", body: { matricule, nom, grade_code, role, password }});
+      }
+      closeModal();
+      await loadPersonnel();
+      toast(isEdit ? "Personne modifiée." : "Personne ajoutée.");
+    }catch(err){ toast(err.message, true); }
+  });
+}
+function closeModal(){ document.getElementById("modalRoot").innerHTML = ""; }
+
+function renderGrades(){
+  document.getElementById("gradesList").innerHTML = state.grades.map(g => `
+    <span class="pill" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px;">
+      ${escapeHtml(g.libelle)} (${g.code})
+      <button class="grade-delete" data-code="${g.code}" style="border:none;background:none;color:#FF9498;cursor:pointer;font-weight:800;">✕</button>
+    </span>
+  `).join("");
+  document.querySelectorAll(".grade-delete").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      try{
+        await api("/grades?code=" + encodeURIComponent(btn.dataset.code), { method: "DELETE" });
+        await loadPersonnel();
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+}
+
+document.getElementById("addGradeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const code = document.getElementById("newGradeCode").value.trim();
+  const libelle = document.getElementById("newGradeLibelle").value.trim();
+  if (!code || !libelle) return;
+  try{
+    await api("/grades", { method: "POST", body: { code, libelle } });
+    document.getElementById("addGradeForm").reset();
+    await loadPersonnel();
+    toast("Grade ajouté.");
+  }catch(err){ toast(err.message, true); }
+});
+</script>
+</body>
+</html>
