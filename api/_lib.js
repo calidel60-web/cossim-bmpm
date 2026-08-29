@@ -18,7 +18,27 @@ if (!process.env.JWT_SECRET) {
   console.error("JWT_SECRET manquant dans les variables d'environnement Vercel.");
 }
 
-const sql = neon(process.env.DATABASE_URL);
+// Si DATABASE_URL est absente ou mal formée, neon() peut lever une
+// exception dès le chargement du module — avant même d'entrer dans le
+// try/catch d'une fonction. Vercel affiche alors une erreur générique
+// ("This Serverless Function has crashed") sans détail exploitable.
+// On intercepte ce cas ici pour transformer ça en une erreur JSON claire,
+// renvoyée normalement au moment de l'appel (donc visible dans le tchat
+// du jeu via notify(), sans avoir besoin des logs Vercel).
+let sql;
+try {
+  sql = neon(process.env.DATABASE_URL);
+} catch (initError) {
+  console.error("Échec d'initialisation de la connexion Neon :", initError.message);
+  sql = () => {
+    const err = new Error(
+      "Connexion base de données impossible : " + initError.message +
+      " — vérifie DATABASE_URL sur Vercel."
+    );
+    err.statusCode = 500;
+    throw err;
+  };
+}
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -71,6 +91,9 @@ function getBody(req) {
   if (req.body == null) return {};
   if (typeof req.body === "string") {
     try { return JSON.parse(req.body || "{}"); } catch { return {}; }
+  }
+  if (Buffer.isBuffer(req.body)) {
+    try { return JSON.parse(req.body.toString("utf8") || "{}"); } catch { return {}; }
   }
   return req.body;
 }
