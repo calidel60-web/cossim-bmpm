@@ -98,6 +98,27 @@ function getBody(req) {
   return req.body;
 }
 
+// Lecture manuelle du corps brut de la requête, pour les fonctions qui
+// désactivent le bodyParser automatique de Vercel (voir api/fivem.js).
+// Plus tolérant que le parseur intégré face à des clients HTTP "non
+// standards" (ex: PerformHttpRequest de FiveM/CitizenFX).
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", (chunk) => { data += chunk; });
+    req.on("end", () => resolve(data));
+    req.on("error", reject);
+  });
+}
+
+async function getBodySafe(req) {
+  // Si le bodyParser Vercel a déjà fait son travail (req.body existe), on
+  // le réutilise. Sinon (bodyParser désactivé), on lit le flux nous-mêmes.
+  if (req.body !== undefined) return getBody(req);
+  const raw = await readRawBody(req);
+  try { return JSON.parse(raw || "{}"); } catch { return {}; }
+}
+
 // Paramètre de query string : Vercel place tout dans req.query
 // (valeur simple, ou tableau si le paramètre est répété).
 function getQuery(req, key) {
@@ -211,7 +232,7 @@ const VEHICLE_STATUS_LABELS = {
 };
 
 module.exports = {
-  sql, json, preflight, requireAuth, getBody, getQuery,
+  sql, json, preflight, requireAuth, getBody, getBodySafe, getQuery,
   POSTES_PAR_CATEGORIE, buildEngagementMessage, logMessage, VEHICLE_STATUS_LABELS,
   envoyerOrdreMission,
 };

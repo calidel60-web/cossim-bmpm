@@ -1,4 +1,4 @@
-const { sql, json, preflight, getBody } = require("./_lib");
+const { sql, json, preflight, getBodySafe } = require("./_lib");
 
 const VALID_STATUTS = [
   "en_route", "sur_les_lieux", "message", "message_urgent",
@@ -187,13 +187,13 @@ async function handleDisconnect(req, res, body) {
   return json(res, 200, { ok: true });
 }
 
-module.exports = async (req, res) => {
+async function handler(req, res) {
   if (req.method === "OPTIONS") return preflight(res);
   try {
     requireBridge(req);
     if (req.method !== "POST") return json(res, 405, { error: "Méthode non autorisée." });
 
-    const body = getBody(req);
+    const body = await getBodySafe(req);
     const op = String(body.op || "").trim();
     if (op === "connect") return await handleConnect(req, res, body);
     if (op === "status") return await handleStatus(req, res, body);
@@ -202,4 +202,14 @@ module.exports = async (req, res) => {
   } catch (e) {
     return json(res, e.statusCode || 500, { error: e.message || "Erreur serveur." });
   }
-};
+}
+
+module.exports = handler;
+
+// Désactive le bodyParser JSON automatique de Vercel pour cette fonction :
+// PerformHttpRequest (client HTTP de FiveM/CitizenFX) envoie parfois des
+// requêtes que ce parseur automatique rejette avant même d'atteindre notre
+// code (d'où un 500 avec un corps de réponse totalement vide, impossible
+// à diagnostiquer côté client). getBodySafe lit et parse le corps
+// manuellement à la place, de façon plus tolérante.
+module.exports.config = { api: { bodyParser: false } };
