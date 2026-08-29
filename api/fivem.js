@@ -40,8 +40,13 @@ async function getBinding(identifier) {
 }
 
 async function getAssignedEngins(matricule) {
+  // Fix : avec SELECT DISTINCT, Postgres exige que toute expression du
+  // ORDER BY figure dans la liste SELECT. e.ordre est utilisé pour trier
+  // mais n'était pas sélectionné -> "for SELECT DISTINCT, ORDER BY
+  // expressions must appear in select list". On l'ajoute simplement au
+  // SELECT (elle reste une info sans impact ailleurs dans le code).
   return await sql`
-    SELECT DISTINCT e.id, e.nom, e.categorie
+    SELECT DISTINCT e.id, e.nom, e.categorie, e.ordre
     FROM planning_gardes pg
     JOIN personnel p ON p.id = pg.personnel_id
     JOIN engins e ON e.id = pg.engin_id
