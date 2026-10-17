@@ -34,8 +34,9 @@ module.exports = async (req, res) => {
       case "motifs": return await handleMotifs(req, res);
       case "rues": return await handleRues(req, res);
       case "statut-couleurs": return await handleStatutCouleurs(req, res);
+      case "casernes": return await handleCasernes(req, res);
       default:
-        return json(res, 400, { error: "Paramètre type manquant ou inconnu (grades, services, fonctions, motifs, rues, statut-couleurs)." });
+        return json(res, 400, { error: "Paramètre type manquant ou inconnu (grades, services, fonctions, motifs, rues, statut-couleurs, casernes)." });
     }
   } catch (e) {
     return json(res, e.statusCode || 500, { error: e.message || "Erreur serveur." });
@@ -270,6 +271,78 @@ async function handleStatutCouleurs(req, res) {
     const code = getQuery(req, "statut");
     if (code) await sql`DELETE FROM statut_couleurs WHERE statut_code = ${code}`;
     else await sql`DELETE FROM statut_couleurs`;
+    return json(res, 200, { ok: true });
+  }
+
+  return json(res, 405, { error: "Méthode non autorisée." });
+}
+
+/* -------------------------------------------------------- CASERNES */
+// Centres de secours : lecture pour tous, gestion pour opérateurs CO / admin.
+async function handleCasernes(req, res) {
+  if (req.method === "GET") {
+    requireAuth(req);
+    const rows = await sql`
+      SELECT c.id, c.code, c.nom, c.ordre,
+             COUNT(e.id)::int AS nb_engins
+      FROM casernes c
+      LEFT JOIN engins e ON e.caserne_id = c.id
+      GROUP BY c.id
+      ORDER BY c.ordre ASC, c.nom ASC
+    `;
+    return json(res, 200, { casernes: rows });
+  }
+
+  if (req.method === "POST") {
+    requireAuth(req, EDIT_ROLES);
+    const body = getBody(req);
+    const nom = String(body.nom || "").trim();
+    const code = String(body.code || "").trim().toUpperCase();
+    if (!nom || !code) return json(res, 400, { error: "Code et nom du centre requis." });
+    try {
+      const rows = await sql`
+        INSERT INTO casernes (code, nom, ordre)
+        VALUES (${code}, ${nom}, COALESCE((SELECT MAX(ordre) FROM casernes), 0) + 10)
+        RETURNING id, code, nom, ordre
+      `;
+      return json(res, 201, { caserne: rows[0] });
+    } catch (e) {
+      if (String(e.message).includes("duplicate key")) return json(res, 409, { error: "Ce code de centre existe déjà." });
+      throw e;
+    }
+  }
+
+  if (req.method === "PUT") {
+    requireAuth(req, EDIT_ROLES);
+    const body = getBody(req);
+    const id = Number(body.id);
+    if (!id) return json(res, 400, { error: "id manquant." });
+    const nom = body.nom ? String(body.nom).trim() : null;
+    const code = body.code ? String(body.code).trim().toUpperCase() : null;
+    try {
+      const rows = await sql`
+        UPDATE casernes SET
+          nom  = COALESCE(${nom}, nom),
+          code = COALESCE(${code}, code)
+        WHERE id = ${id}
+        RETURNING id, code, nom, ordre
+      `;
+      if (!rows.length) return json(res, 404, { error: "Centre introuvable." });
+      // Garde la colonne texte historique synchronisée
+      await sql`UPDATE engins SET caserne = ${rows[0].nom} WHERE caserne_id = ${id}`;
+      return json(res, 200, { caserne: rows[0] });
+    } catch (e) {
+      if (String(e.message).includes("duplicate key")) return json(res, 409, { error: "Ce code de centre existe déjà." });
+      throw e;
+    }
+  }
+
+  if (req.method === "DELETE") {
+    requireAuth(req, EDIT_ROLES);
+    const id = Number(getQuery(req, "id"));
+    if (!id) return json(res, 400, { error: "id manquant." });
+    // Les engins du centre ne sont pas supprimés : ils repassent "non affectés".
+    await sql`DELETE FROM casernes WHERE id = ${id}`;
     return json(res, 200, { ok: true });
   }
 

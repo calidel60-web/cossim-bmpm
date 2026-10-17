@@ -1,5 +1,5 @@
 -- ============================================================
--- COSSIM BMPM — migration v2
+-- CO BSPP — migration v2
 -- À exécuter une seule fois sur une base déjà créée avec schema.sql,
 -- pour ajouter : les équivalences grade -> fonctions, et le planning
 -- / feuille de garde. Idempotent (peut être relancé sans risque).
@@ -15,30 +15,30 @@ CREATE TABLE IF NOT EXISTS fonctions (
 );
 
 INSERT INTO fonctions (code, libelle, categorie, seuil_grade_code, ordre) VALUES
-  ('EQUI_CCF',     'Équipier CCF',              'CCF',  'MO2', 10),
+  ('EQUI_CCF',     'Équipier CCF',              'CCF',  'S2C', 10),
   ('COND_CCF',     'Conducteur CCF',            'CCF',  NULL,  20),
-  ('CA_CCF',       'Chef d''agrès CCF',         'CCF',  'SM',  30),
-  ('EQUI_VSAV',    'Équipier VSAV',             'VSAV', 'MO2', 40),
+  ('CA_CCF',       'Chef d''agrès CCF',         'CCF',  'SGT',  30),
+  ('EQUI_VSAV',    'Équipier VSAV',             'VSAV', 'S2C', 40),
   ('COND_VSAV_VL', 'Conducteur VSAV / VL',      'VSAV', NULL,  50),
-  ('CA_VSAV',      'Chef d''agrès VSAV',        'VSAV', 'SM',  60),
-  ('EQUI_VPI',     'Équipier VPI',              'VPI',  'MO2', 70),
-  ('COND_VPI',     'Conducteur VPI',            'VPI',  'QM2', 80),
-  ('CA_VPI',       'Chef d''agrès VPI',         'VPI',  'SM',  90),
-  ('COND_VL/HR',   'Conducteur VL / HR',        'VRCG', 'MO2', 100),
-  ('CDG',          'Chef de groupe (VRCG)',     'VRCG', 'MP',  110),
+  ('CA_VSAV',      'Chef d''agrès VSAV',        'VSAV', 'SGT',  60),
+  ('EQUI_VPI',     'Équipier VPI',              'VPI',  'S2C', 70),
+  ('COND_VPI',     'Conducteur VPI',            'VPI',  'CPL', 80),
+  ('CA_VPI',       'Chef d''agrès VPI',         'VPI',  'SGT',  90),
+  ('COND_VL/HR',   'Conducteur VL / HR',        'VRCG', 'S2C', 100),
+  ('CDG',          'Chef de groupe (VRCG)',     'VRCG', 'ADC',  110),
   ('CDC',          'Chef de colonne (VRCC)',    'VRCC', NULL,  120),
-  ('COND_FI',      'Conducteur FI',             'FI',   'QM2', 130),
-  ('CA_FI',        'Chef d''agrès FI',          'FI',   'MT',  140),
-  ('EQUI_BIN1',    'Équipier binôme 1 (FI)',    'FI',   'MO2', 150),
+  ('COND_FI',      'Conducteur FI',             'FI',   'CPL', 130),
+  ('CA_FI',        'Chef d''agrès FI',          'FI',   'SCH',  140),
+  ('EQUI_BIN1',    'Équipier binôme 1 (FI)',    'FI',   'S2C', 150),
   ('CHEF_BIN1',    'Chef de binôme 1 (FI)',     'FI',   NULL,  160),
-  ('EQUI_BIN2',    'Équipier binôme 2 (FI)',    'FI',   'MO2', 170),
+  ('EQUI_BIN2',    'Équipier binôme 2 (FI)',    'FI',   'S2C', 170),
   ('CHEF_BIN2',    'Chef de binôme 2 (FI)',     'FI',   NULL,  180),
-  ('EQU_MEA',      'Équipier MEA',              'MEA',  'MO2', 190),
-  ('COND_MEA',     'Conducteur MEA',            'MEA',  'QM2', 200),
-  ('CA_MEA',       'Chef d''agrès MEA',         'MEA',  'MT',  210),
-  ('EQU_SR',       'Équipier CSR',              'CSR',  'MO2', 220),
-  ('COND_SR',      'Conducteur CSR',            'CSR',  'QM2', 230),
-  ('CA_SR',        'Chef d''agrès CSR',         'CSR',  'MT',  240)
+  ('EQU_MEA',      'Équipier MEA',              'MEA',  'S2C', 190),
+  ('COND_MEA',     'Conducteur MEA',            'MEA',  'CPL', 200),
+  ('CA_MEA',       'Chef d''agrès MEA',         'MEA',  'SCH',  210),
+  ('EQU_SR',       'Équipier CSR',              'CSR',  'S2C', 220),
+  ('COND_SR',      'Conducteur CSR',            'CSR',  'CPL', 230),
+  ('CA_SR',        'Chef d''agrès CSR',         'CSR',  'SCH',  240)
 ON CONFLICT (code) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS planning_gardes (

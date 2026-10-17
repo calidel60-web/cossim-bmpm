@@ -1,7 +1,7 @@
 {
   "name": "cossim-bmpm",
   "version": "2.0.0",
-  "description": "COSSIM (régulation / CTA-INTER) pour le BMPM — Vercel + Neon",
+  "description": "CO — Centre Opérationnel (régulation / INTER) pour la BSPP — Vercel + Neon",
   "private": true,
   "scripts": {
     "hash": "node db/hash-password.js"

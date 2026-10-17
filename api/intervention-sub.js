@@ -49,7 +49,7 @@ async function handleEngins(req, res) {
       const enginRows = await sql`SELECT id, nom, categorie FROM engins WHERE id = ${engin_id}`;
       if (enginRows[0]) {
         const contenu = await buildEngagementMessage(sql, enginRows[0].nom, enginRows[0].categorie, engin_id);
-        await logMessage(sql, intervention_id, `CTA ${user.nom}`, contenu);
+        await logMessage(sql, intervention_id, `CO ${user.nom}`, contenu);
 
         const interRows = await sql`SELECT * FROM interventions WHERE id = ${intervention_id}`;
         const engages = await sql`
@@ -181,7 +181,7 @@ async function handleMessages(req, res) {
     const contenu = String(body.contenu || "").trim();
     if (!intervention_id || !contenu) return json(res, 400, { error: "intervention_id et contenu sont requis." });
 
-    const auteur = body.auteur ? String(body.auteur).trim() : `CTA ${user.nom}`;
+    const auteur = body.auteur ? String(body.auteur).trim() : `CO ${user.nom}`;
 
     const rows = await sql`
       INSERT INTO intervention_messages (intervention_id, auteur, contenu)

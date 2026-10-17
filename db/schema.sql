@@ -1,5 +1,5 @@
 -- ============================================================
--- COSSIM BMPM — schéma Postgres (Neon)
+-- CO BSPP — schéma Postgres (Neon)
 -- À exécuter une fois dans la console SQL de Neon (ou via psql)
 -- ============================================================
 
@@ -17,18 +17,22 @@ CREATE TABLE IF NOT EXISTS grades (
 );
 
 INSERT INTO grades (code, libelle, ordre) VALUES
-  ('MO2','Matelot 2e classe',10),
-  ('MO1','Matelot 1re classe',20),
-  ('QM2','Quartier-maître 2e classe',30),
-  ('QM1','Quartier-maître 1re classe',40),
-  ('SM','Second-maître',50),
-  ('MT','Maître',60),
-  ('PM','Premier-maître',70),
-  ('MP','Maître-principal',80),
-  ('MJR','Major',90),
-  ('EV2','Enseigne de vaisseau 2e classe',100),
-  ('EV1','Enseigne de vaisseau 1re classe',110),
-  ('LV','Lieutenant de vaisseau',120)
+  ('S2C','Sapeur 2e classe',10),
+  ('S1C','Sapeur 1re classe',20),
+  ('CPL','Caporal',30),
+  ('CCH','Caporal-chef',40),
+  ('SGT','Sergent',50),
+  ('SCH','Sergent-chef',60),
+  ('ADJ','Adjudant',70),
+  ('ADC','Adjudant-chef',80),
+  ('MAJ','Major',90),
+  ('SLT','Sous-lieutenant',100),
+  ('LTN','Lieutenant',110),
+  ('CNE','Capitaine',120),
+  ('CDT','Commandant',130),
+  ('LCL','Lieutenant-colonel',140),
+  ('COL','Colonel',150),
+  ('GBR','Général de brigade',160)
 ON CONFLICT (code) DO NOTHING;
 
 -- ------------------------------------------------------------
@@ -227,30 +231,30 @@ CREATE TABLE IF NOT EXISTS fonctions (
 );
 
 INSERT INTO fonctions (code, libelle, categorie, seuil_grade_code, ordre) VALUES
-  ('EQUI_CCF',     'Équipier CCF',              'CCF',  'MO2', 10),
+  ('EQUI_CCF',     'Équipier CCF',              'CCF',  'S2C', 10),
   ('COND_CCF',     'Conducteur CCF',            'CCF',  NULL,  20),
-  ('CA_CCF',       'Chef d''agrès CCF',         'CCF',  'SM',  30),
-  ('EQUI_VSAV',    'Équipier VSAV',             'VSAV', 'MO2', 40),
+  ('CA_CCF',       'Chef d''agrès CCF',         'CCF',  'SGT',  30),
+  ('EQUI_VSAV',    'Équipier VSAV',             'VSAV', 'S2C', 40),
   ('COND_VSAV_VL', 'Conducteur VSAV / VL',      'VSAV', NULL,  50),
-  ('CA_VSAV',      'Chef d''agrès VSAV',        'VSAV', 'SM',  60),
-  ('EQUI_VPI',     'Équipier VPI',              'VPI',  'MO2', 70),
-  ('COND_VPI',     'Conducteur VPI',            'VPI',  'QM2', 80),
-  ('CA_VPI',       'Chef d''agrès VPI',         'VPI',  'SM',  90),
-  ('COND_VL/HR',   'Conducteur VL / HR',        'VRCG', 'MO2', 100),
-  ('CDG',          'Chef de groupe (VRCG)',     'VRCG', 'MP',  110),
+  ('CA_VSAV',      'Chef d''agrès VSAV',        'VSAV', 'SGT',  60),
+  ('EQUI_VPI',     'Équipier VPI',              'VPI',  'S2C', 70),
+  ('COND_VPI',     'Conducteur VPI',            'VPI',  'CPL', 80),
+  ('CA_VPI',       'Chef d''agrès VPI',         'VPI',  'SGT',  90),
+  ('COND_VL/HR',   'Conducteur VL / HR',        'VRCG', 'S2C', 100),
+  ('CDG',          'Chef de groupe (VRCG)',     'VRCG', 'ADC',  110),
   ('CDC',          'Chef de colonne (VRCC)',    'VRCC', NULL,  120),
-  ('COND_FI',      'Conducteur FI',             'FI',   'QM2', 130),
-  ('CA_FI',        'Chef d''agrès FI',          'FI',   'MT',  140),
-  ('EQUI_BIN1',    'Équipier binôme 1 (FI)',    'FI',   'MO2', 150),
+  ('COND_FI',      'Conducteur FI',             'FI',   'CPL', 130),
+  ('CA_FI',        'Chef d''agrès FI',          'FI',   'SCH',  140),
+  ('EQUI_BIN1',    'Équipier binôme 1 (FI)',    'FI',   'S2C', 150),
   ('CHEF_BIN1',    'Chef de binôme 1 (FI)',     'FI',   NULL,  160),
-  ('EQUI_BIN2',    'Équipier binôme 2 (FI)',    'FI',   'MO2', 170),
+  ('EQUI_BIN2',    'Équipier binôme 2 (FI)',    'FI',   'S2C', 170),
   ('CHEF_BIN2',    'Chef de binôme 2 (FI)',     'FI',   NULL,  180),
-  ('EQU_MEA',      'Équipier MEA',              'MEA',  'MO2', 190),
-  ('COND_MEA',     'Conducteur MEA',            'MEA',  'QM2', 200),
-  ('CA_MEA',       'Chef d''agrès MEA',         'MEA',  'MT',  210),
-  ('EQU_SR',       'Équipier CSR',              'CSR',  'MO2', 220),
-  ('COND_SR',      'Conducteur CSR',            'CSR',  'QM2', 230),
-  ('CA_SR',        'Chef d''agrès CSR',         'CSR',  'MT',  240)
+  ('EQU_MEA',      'Équipier MEA',              'MEA',  'S2C', 190),
+  ('COND_MEA',     'Conducteur MEA',            'MEA',  'CPL', 200),
+  ('CA_MEA',       'Chef d''agrès MEA',         'MEA',  'SCH',  210),
+  ('EQU_SR',       'Équipier CSR',              'CSR',  'S2C', 220),
+  ('COND_SR',      'Conducteur CSR',            'CSR',  'CPL', 230),
+  ('CA_SR',        'Chef d''agrès CSR',         'CSR',  'SCH',  240)
 ON CONFLICT (code) DO NOTHING;
 
 -- ------------------------------------------------------------
@@ -303,12 +307,12 @@ CREATE INDEX IF NOT EXISTS idx_planning_engins_jour_date ON planning_engins_jour
 
 -- ------------------------------------------------------------
 -- Compte admin de démarrage (À CHANGER IMMÉDIATEMENT APRÈS INSTALLATION)
--- matricule: 0001 / mot de passe temporaire: bmpm-admin
--- Le hash ci-dessous correspond réellement à bcrypt("bmpm-admin", 10 rounds)
+-- matricule: 0001 / mot de passe temporaire: bspp-admin
+-- Le hash ci-dessous correspond réellement à bcrypt("bspp-admin", 10 rounds)
 -- (généré et vérifié avec bcryptjs). Change ce mot de passe dès la première
 -- connexion : génère ton propre hash avec `node db/hash-password.js "monMotDePasse"`
 -- puis remplace la valeur ci-dessous avant de déployer en production.
 -- ------------------------------------------------------------
 INSERT INTO personnel (matricule, password_hash, nom, grade_code, role) VALUES
-  ('0001', '$2b$10$AstgFc1BHEXlm06oi7ksq.pJoNtwAV5OqRQCmUdp997WgcS3QHaBe', 'Administrateur', 'MJR', 'admin')
+  ('0001', '$2b$10$AstgFc1BHEXlm06oi7ksq.pJoNtwAV5OqRQCmUdp997WgcS3QHaBe', 'Administrateur', 'MAJ', 'admin')
 ON CONFLICT (matricule) DO NOTHING;

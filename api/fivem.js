@@ -10,9 +10,9 @@ function bridgeKey(req) {
 }
 
 function requireBridge(req) {
-  const expected = process.env.COSSIM_FIVEM_KEY;
+  const expected = process.env.CO_FIVEM_KEY || process.env.COSSIM_FIVEM_KEY;
   if (!expected) {
-    const err = new Error("COSSIM_FIVEM_KEY non configurée sur Vercel.");
+    const err = new Error("CO_FIVEM_KEY (ou COSSIM_FIVEM_KEY) non configurée sur Vercel.");
     err.statusCode = 500;
     throw err;
   }
@@ -71,10 +71,10 @@ async function handleConnect(req, res, body) {
     WHERE matricule = ${matricule}
     LIMIT 1
   `;
-  if (!personnel.length) return json(res, 404, { error: "Matricule COSSIM introuvable." });
-  if (!personnel[0].actif) return json(res, 403, { error: "Ce personnel est désactivé dans COSSIM." });
+  if (!personnel.length) return json(res, 404, { error: "Matricule CO introuvable." });
+  if (!personnel[0].actif) return json(res, 403, { error: "Ce personnel est désactivé dans le CO." });
 
-  // Un compte COSSIM ne reste lié qu'à un seul identifiant FiveM à la fois.
+  // Un compte CO ne reste lié qu'à un seul identifiant FiveM à la fois.
   await sql`DELETE FROM fivem_bindings WHERE matricule = ${matricule} AND identifier <> ${identifier}`;
 
   const rows = await sql`
@@ -106,8 +106,8 @@ async function handleStatus(req, res, body) {
   }
 
   const binding = await getBinding(identifier);
-  if (!binding) return json(res, 404, { error: "Ce joueur FiveM n'est pas connecté à COSSIM. Utilise /connect MATRICULE." });
-  if (!binding.actif) return json(res, 403, { error: "Le compte COSSIM est désactivé." });
+  if (!binding) return json(res, 404, { error: "Ce joueur FiveM n'est pas connecté au CO. Utilise /connect MATRICULE." });
+  if (!binding.actif) return json(res, 403, { error: "Le compte CO est désactivé." });
 
   await sql`
     UPDATE fivem_bindings

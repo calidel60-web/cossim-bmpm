@@ -6,6 +6,7 @@
     { "source": "/api/motifs", "destination": "/api/reference?type=motifs" },
     { "source": "/api/rues", "destination": "/api/reference?type=rues" },
     { "source": "/api/statut-couleurs", "destination": "/api/reference?type=statut-couleurs" },
+    { "source": "/api/casernes", "destination": "/api/reference?type=casernes" },
 
     { "source": "/api/intervention-engins", "destination": "/api/intervention-sub?resource=engins" },
     { "source": "/api/intervention-services", "destination": "/api/intervention-sub?resource=services" },

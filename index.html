@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>COSSIM — BMPM</title>
+<title>CO — Centre Opérationnel BSPP</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%230A1929%22/><text x=%2250%22 y=%2266%22 font-size=%2258%22 text-anchor=%22middle%22 fill=%22%23D8A438%22 font-family=%22sans-serif%22>C</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +11,7 @@
 <style>
 /* ============================================================
    TOKENS — thème "salle de commandement" : navy quasi-noir,
-   accent or (blason BMPM), rouge réservé aux états d'alerte.
+   accent or, rouge réservé aux états d'alerte.
    Chiffres/codes en monospace pour un rendu radio/régulation.
    ============================================================ */
 :root{
@@ -199,6 +199,15 @@ button,input,select,textarea{font-family:inherit;}
 .engine-chip select{width:100%;padding:5px 6px;border-radius:6px;border:1px solid var(--line);background:var(--panel);
   color:var(--ink);font-size:11.5px;font-weight:700;margin-top:8px;}
 .engine-chip .chip-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+.caserne-block{margin-bottom:20px;}
+.caserne-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.caserne-code{font-family:var(--font-mono);font-weight:800;font-size:11px;color:var(--gold);border:1px solid var(--gold);
+  border-radius:6px;padding:2px 7px;letter-spacing:1px;}
+.caserne-nom{font-weight:800;font-size:14px;}
+.caserne-count{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+.caserne-tools{margin-left:auto;display:flex;gap:6px;}
+.caserne-empty{color:var(--muted);font-size:12.5px;padding:6px 2px;}
+.add-engin-form select{padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-size:13px;}
 
 /* ===== Personnalisation des couleurs de statut (admin) ===== */
 .statut-colors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:14px;}
@@ -393,9 +402,9 @@ button,input,select,textarea{font-family:inherit;}
 <!-- ================== ÉCRAN CONNEXION ================== -->
 <div class="auth-shell" id="loginScreen">
   <div class="auth-card">
-    <div class="auth-badge"><img id="loginLogo" alt="Marins-Pompiers de Marseille"></div>
-    <div class="auth-title">Bataillon de Marins-Pompiers</div>
-    <div class="auth-subtitle">COSSIM</div>
+    <div class="auth-badge"><img id="loginLogo" alt="BSPP"></div>
+    <div class="auth-title">Brigade de Sapeurs-Pompiers de Paris</div>
+    <div class="auth-subtitle">CO — Centre Opérationnel</div>
     <div id="loginErrorSlot"></div>
     <form id="loginForm">
       <div class="auth-field">
@@ -408,7 +417,7 @@ button,input,select,textarea{font-family:inherit;}
       </div>
       <button type="submit" class="auth-submit">Se connecter</button>
     </form>
-    <div class="auth-hint">Accès réservé au personnel du BMPM.</div>
+    <div class="auth-hint">Accès réservé au personnel de la BSPP.</div>
   </div>
 </div>
 
@@ -416,8 +425,8 @@ button,input,select,textarea{font-family:inherit;}
 <div id="appScreens" class="hidden">
   <div class="topbar">
     <div class="tb-brand">
-      <div class="tb-badge"><img id="tbLogo" alt="BMPM"></div>
-      <div class="tb-text"><div class="t1">BMPM</div><div class="t2">COSSIM</div></div>
+      <div class="tb-badge"><img id="tbLogo" alt="BSPP"></div>
+      <div class="tb-text"><div class="t1">BSPP</div><div class="t2">CO</div></div>
     </div>
     <div class="tb-nav">
       <button class="tb-btn" id="navHome" data-screen="menu">Accueil</button>
@@ -584,16 +593,23 @@ button,input,select,textarea{font-family:inherit;}
   <div class="shell hidden" id="screenSynoptique">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">CIS LOUVAIN — Synoptique des engins</div>
+        <div class="card-title">Synoptique des engins — centres de secours</div>
         <span class="badge-count" id="synCount">0 ENGINS</span>
       </div>
-      <div class="engine-grid" id="synGrid"></div>
+      <div id="synGrid"></div>
+
+      <form class="add-engin-form hidden" id="addCaserneForm">
+        <input id="newCaserneCode" placeholder="Code (ex. LVN)" style="max-width:120px;" maxlength="10" required>
+        <input id="newCaserneNom" placeholder="Nom du centre (ex. CIS LOUVAIN)" required>
+        <button type="submit" class="btn btn-primary btn-sm">+ Créer un centre de secours</button>
+      </form>
       <form class="add-engin-form hidden" id="addEnginForm">
         <input id="newEnginNom" placeholder="Nom (ex. VSAV 06 LVN)" required>
         <input id="newEnginCategorie" placeholder="Catégorie (ex. VSAV)">
+        <select id="newEnginCaserne"></select>
         <button type="submit" class="btn btn-primary btn-sm">Ajouter un engin</button>
       </form>
-      <div class="section-note" id="synReadonlyNote">Vue de consultation — seuls les opérateurs COSSIM et les administrateurs peuvent modifier le synoptique.</div>
+      <div class="section-note" id="synReadonlyNote">Vue de consultation — seuls les opérateurs CO et les administrateurs peuvent modifier le synoptique.</div>
     </div>
 
     <div class="card hidden" id="statutColorsCard">
@@ -621,7 +637,7 @@ button,input,select,textarea{font-family:inherit;}
         <button type="button" class="btn btn-primary btn-sm hidden" id="btnPlanningAddEngin">Armer ce véhicule</button>
       </div>
       <div class="planning-grid" id="planningGrid"></div>
-      <div class="section-note" id="planningReadonlyNote">Vue de consultation — seuls les opérateurs COSSIM et les administrateurs peuvent modifier le planning.</div>
+      <div class="section-note" id="planningReadonlyNote">Vue de consultation — seuls les opérateurs CO et les administrateurs peuvent modifier le planning.</div>
       <div class="section-note">N'apparaissent ici que les véhicules explicitement armés pour ce jour de garde, choisis parmi ceux présents au synoptique des engins. Les postes proposés pour chaque engin dépendent de sa catégorie (chef d'agrès, conducteur, équipier...) : seul le personnel dont le grade donne accès à la fonction apparaît dans chaque liste.</div>
     </div>
   </div>
@@ -649,7 +665,7 @@ button,input,select,textarea{font-family:inherit;}
         <input id="newGradeLibelle" placeholder="Libellé (ex. Aspirant)">
         <button type="submit" class="btn btn-primary btn-sm">Ajouter un grade</button>
       </form>
-      <div class="section-note">La liste des grades est entièrement personnalisable : ajoute les tiens en plus de ceux fournis par défaut (MO2, MO1, QM2, QM1, SM, MT, PM, MP, MJR, EV2, EV1, LV).</div>
+      <div class="section-note">La liste des grades est entièrement personnalisable : ajoute les tiens en plus de ceux fournis par défaut (S2C, S1C, CPL, CCH, SGT, SCH, ADJ, ADC, MAJ, SLT, LTN, CNE, CDT, LCL, COL, GBR).</div>
     </div>
 
     <div class="card">
@@ -669,11 +685,12 @@ button,input,select,textarea{font-family:inherit;}
 
 <script>
 /* ============================================================
-   COSSIM BMPM — front statique (Netlify) parlant aux fonctions
+   CO BSPP — front statique (Vercel) parlant aux fonctions
    serverless via /api/* (redirigé vers netlify/functions/*.js).
    ============================================================ */
 const API = "/api";
-const LOGO_SRC = "data:image/png;base64,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";
+// Remplace cette valeur par le blason officiel (data URI ou chemin /logo.png).
+const LOGO_SRC = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='4' y='4' width='92' height='92' rx='16' fill='%230A1929' stroke='%23D8A438' stroke-width='5'/%3E%3Ctext x='50' y='60' font-family='Arial%2Csans-serif' font-weight='800' font-size='30' text-anchor='middle' fill='%23D8A438'%3EBSPP%3C/text%3E%3C/svg%3E";
 
 /* ============================================================
    MOTIFS D'INTERVENTION — liste proposée + réponse opérationnelle
@@ -913,6 +930,7 @@ let state = {
   currentInterventionId: null,
   synInterTimer: null,
   synOptiqueTimer: null,
+  casernes: [],
   planningDate: new Date().toISOString().slice(0, 10),
 };
 
@@ -1760,31 +1778,124 @@ async function loadHistorique(interventionId){
 /* ============================================================
    SYNOPTIQUE DES ENGINS (consultation ou édition selon le rôle)
    ============================================================ */
-async function loadSynoptique(){
-  const [data, colorsData] = await Promise.all([api("/engins"), api("/reference?type=statut-couleurs")]);
+function caserneOptions(selectedId, withNone){
+  const opts = (withNone ? ['<option value="">— Non affecté —</option>'] : [])
+    .concat(state.casernes.map(c =>
+      `<option value="${c.id}" ${Number(selectedId) === c.id ? "selected" : ""}>${escapeHtml(c.nom)} (${escapeHtml(c.code)})</option>`));
+  return opts.join("");
+}
+
+function renderSynoptiqueGrid(){
+  const editable = canEdit();
+  document.getElementById("synCount").textContent =
+    `${state.engins.length} ENGINS · ${state.casernes.length} CENTRES`;
+
+  const groups = state.casernes.map(c => ({ caserne: c, engins: state.engins.filter(e => e.caserne_id === c.id) }));
+  const orphans = state.engins.filter(e => !e.caserne_id || !state.casernes.some(c => c.id === e.caserne_id));
+  if (orphans.length) groups.push({ caserne: null, engins: orphans });
+
+  if (!groups.length){
+    document.getElementById("synGrid").innerHTML =
+      '<div class="caserne-empty">Aucun centre de secours. ' + (editable ? "Crée le premier ci-dessous." : "") + '</div>';
+    return;
+  }
+
+  document.getElementById("synGrid").innerHTML = groups.map(g => {
+    const c = g.caserne;
+    const head = c ? `
+      <span class="caserne-code">${escapeHtml(c.code)}</span>
+      <span class="caserne-nom">${escapeHtml(c.nom)}</span>
+      <span class="caserne-count">${g.engins.length} engin${g.engins.length > 1 ? "s" : ""}</span>
+      ${editable ? `<span class="caserne-tools">
+        <button class="btn btn-secondary btn-sm caserne-edit" data-id="${c.id}">Renommer</button>
+        <button class="btn btn-danger btn-sm caserne-delete" data-id="${c.id}">Supprimer</button>
+      </span>` : ""}`
+      : `<span class="caserne-nom">Non affectés</span><span class="caserne-count">${g.engins.length} engin${g.engins.length > 1 ? "s" : ""}</span>`;
+
+    const chips = g.engins.length ? g.engins.map(e => `
+      <div class="engine-chip" data-id="${e.id}" style="${statutChipStyle(e.statut)}">
+        <div class="nom">${escapeHtml(e.nom)}</div>
+        ${editable ? `
+          <select class="engin-caserne-select" data-id="${e.id}" title="Affecter à un centre">${caserneOptions(e.caserne_id, true)}</select>
+          <div class="chip-actions"><button class="btn btn-danger btn-sm engin-delete" data-id="${e.id}">Supprimer</button></div>
+        ` : ""}
+      </div>`).join("") : '<div class="caserne-empty">Aucun engin affecté à ce centre.</div>';
+
+    return `<div class="caserne-block"><div class="caserne-head">${head}</div><div class="engine-grid">${chips}</div></div>`;
+  }).join("");
+
+  if (!editable) return;
+
+  // Affectation d'un engin à un centre
+  document.querySelectorAll(".engin-caserne-select").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      try{
+        await api("/engins", { method: "PUT", body: { id: Number(sel.dataset.id), caserne_id: sel.value ? Number(sel.value) : null } });
+        await refreshSynoptiqueData();
+        toast("Engin affecté.");
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+  document.querySelectorAll(".engin-delete").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Supprimer cet engin du synoptique ?")) return;
+      try{
+        await api("/engins?id=" + btn.dataset.id, { method: "DELETE" });
+        await refreshSynoptiqueData();
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+  document.querySelectorAll(".caserne-edit").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const c = state.casernes.find(x => x.id === Number(btn.dataset.id));
+      const nom = prompt("Nom du centre :", c.nom);
+      if (nom === null || !nom.trim()) return;
+      const code = prompt("Code du centre :", c.code);
+      if (code === null || !code.trim()) return;
+      try{
+        await api("/casernes", { method: "PUT", body: { id: c.id, nom: nom.trim(), code: code.trim() } });
+        await refreshSynoptiqueData();
+        toast("Centre modifié.");
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+  document.querySelectorAll(".caserne-delete").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const c = state.casernes.find(x => x.id === Number(btn.dataset.id));
+      if (!confirm(`Supprimer le centre ${c.nom} ? Ses engins ne seront pas supprimés, ils passeront "non affectés".`)) return;
+      try{
+        await api("/casernes?id=" + c.id, { method: "DELETE" });
+        await refreshSynoptiqueData();
+        toast("Centre supprimé.");
+      }catch(err){ toast(err.message, true); }
+    });
+  });
+}
+
+async function refreshSynoptiqueData(){
+  const [data, casData] = await Promise.all([api("/engins"), api("/casernes")]);
   state.engins = data.engins;
+  state.casernes = casData.casernes;
+  renderSynoptiqueGrid();
+  document.getElementById("newEnginCaserne").innerHTML = caserneOptions(
+    document.getElementById("newEnginCaserne").value, true);
+}
+
+async function loadSynoptique(){
+  const colorsData = await api("/reference?type=statut-couleurs");
   state.statutColors = { ...DEFAULT_STATUT_COLORS, ...colorsData.colors };
   const editable = canEdit();
 
-  document.getElementById("synCount").textContent = state.engins.length + " ENGINS";
   document.getElementById("addEnginForm").classList.toggle("hidden", !editable);
+  document.getElementById("addCaserneForm").classList.toggle("hidden", !editable);
   document.getElementById("synReadonlyNote").classList.toggle("hidden", editable);
   document.getElementById("statutColorsCard").classList.toggle("hidden", !editable);
   if (editable) renderStatutColorsForm();
 
-  document.getElementById("synGrid").innerHTML = state.engins.map(e => `
-    <div class="engine-chip" data-id="${e.id}" style="${statutChipStyle(e.statut)}">
-      <div class="nom">${escapeHtml(e.nom)}</div>
-      ${editable ? `
-        <div class="chip-actions"><button class="btn btn-danger btn-sm engin-delete" data-id="${e.id}">Supprimer</button></div>
-      ` : ""}
-    </div>
-  `).join("");
+  await refreshSynoptiqueData();
 
-  // Actualisation automatique : les changements de statut opérés ailleurs
-  // (ex. depuis l'écran d'intervention) apparaissent ici sans rechargement.
-  // Le synoptique des engins reste une vue de consultation : le statut ne
-  // se change pas depuis cet écran, seule la couleur (personnalisable) informe.
+  // Actualisation automatique des couleurs de statut (changements opérés ailleurs,
+  // ex. écran d'intervention ou radio FiveM). Le statut ne se change pas ici.
   if (state.synOptiqueTimer) { clearInterval(state.synOptiqueTimer); state.synOptiqueTimer = null; }
   state.synOptiqueTimer = setInterval(async () => {
     try{
@@ -1792,23 +1903,10 @@ async function loadSynoptique(){
       state.engins = d.engins;
       state.engins.forEach(e => {
         const chip = document.querySelector(`.engine-chip[data-id="${e.id}"]`);
-        if (!chip) return;
-        chip.setAttribute("style", statutChipStyle(e.statut));
+        if (chip) chip.setAttribute("style", statutChipStyle(e.statut));
       });
-    }catch(err){ /* silencieux : pas de gêne à l'utilisateur */ }
+    }catch(err){ /* silencieux */ }
   }, 15000);
-
-  if (editable){
-    document.querySelectorAll(".engin-delete").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        if (!confirm("Supprimer cet engin du synoptique ?")) return;
-        try{
-          await api("/engins?id=" + btn.dataset.id, { method: "DELETE" });
-          await loadSynoptique();
-        }catch(err){ toast(err.message, true); }
-      });
-    });
-  }
 }
 
 /* ---------- Personnalisation des couleurs de statut (admin) ---------- */
@@ -1856,12 +1954,27 @@ document.getElementById("addEnginForm").addEventListener("submit", async (e) => 
   e.preventDefault();
   const nom = document.getElementById("newEnginNom").value.trim();
   const categorie = document.getElementById("newEnginCategorie").value.trim();
+  const caserne_id = document.getElementById("newEnginCaserne").value;
   if (!nom) return;
   try{
-    await api("/engins", { method: "POST", body: { nom, categorie } });
-    document.getElementById("addEnginForm").reset();
-    await loadSynoptique();
+    await api("/engins", { method: "POST", body: { nom, categorie, caserne_id: caserne_id ? Number(caserne_id) : null } });
+    document.getElementById("newEnginNom").value = "";
+    document.getElementById("newEnginCategorie").value = "";
+    await refreshSynoptiqueData();
     toast("Engin ajouté.");
+  }catch(err){ toast(err.message, true); }
+});
+
+document.getElementById("addCaserneForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const code = document.getElementById("newCaserneCode").value.trim();
+  const nom = document.getElementById("newCaserneNom").value.trim();
+  if (!code || !nom) return;
+  try{
+    await api("/casernes", { method: "POST", body: { code, nom } });
+    document.getElementById("addCaserneForm").reset();
+    await refreshSynoptiqueData();
+    toast("Centre de secours créé.");
   }catch(err){ toast(err.message, true); }
 });
 
@@ -2055,7 +2168,7 @@ function renderPersonnelTable(rows){
     });
   });
 }
-function roleLabel(r){ return { agent:"Agent", operateur_cta:"Opérateur COSSIM", admin:"Admin" }[r] || r; }
+function roleLabel(r){ return { agent:"Agent", operateur_cta:"Opérateur CO", admin:"Admin" }[r] || r; }
 
 document.getElementById("btnAddPersonnel").addEventListener("click", () => openPersonnelModal(null));
 
@@ -2075,7 +2188,7 @@ function openPersonnelModal(person){
         <div class="field"><label>Rôle</label>
           <select id="mRole">
             <option value="agent" ${person && person.role==="agent"?"selected":""}>Agent</option>
-            <option value="operateur_cta" ${person && person.role==="operateur_cta"?"selected":""}>Opérateur COSSIM</option>
+            <option value="operateur_cta" ${person && person.role==="operateur_cta"?"selected":""}>Opérateur CO</option>
             <option value="admin" ${person && person.role==="admin"?"selected":""}>Admin</option>
           </select>
         </div>
