@@ -1,17 +1,54 @@
 {
   "rewrites": [
-    { "source": "/api/grades", "destination": "/api/reference?type=grades" },
-    { "source": "/api/services", "destination": "/api/reference?type=services" },
-    { "source": "/api/fonctions", "destination": "/api/reference?type=fonctions" },
-    { "source": "/api/motifs", "destination": "/api/reference?type=motifs" },
-    { "source": "/api/rues", "destination": "/api/reference?type=rues" },
-    { "source": "/api/statut-couleurs", "destination": "/api/reference?type=statut-couleurs" },
-    { "source": "/api/casernes", "destination": "/api/reference?type=casernes" },
-
-    { "source": "/api/intervention-engins", "destination": "/api/intervention-sub?resource=engins" },
-    { "source": "/api/intervention-services", "destination": "/api/intervention-sub?resource=services" },
-    { "source": "/api/intervention-messages", "destination": "/api/intervention-sub?resource=messages" },
-
-    { "source": "/api/planning-engins", "destination": "/api/planning?resource=engins-jour" }
-  ]
+    {
+      "source": "/api/grades",
+      "destination": "/api/reference?type=grades"
+    },
+    {
+      "source": "/api/services",
+      "destination": "/api/reference?type=services"
+    },
+    {
+      "source": "/api/fonctions",
+      "destination": "/api/reference?type=fonctions"
+    },
+    {
+      "source": "/api/motifs",
+      "destination": "/api/reference?type=motifs"
+    },
+    {
+      "source": "/api/rues",
+      "destination": "/api/reference?type=rues"
+    },
+    {
+      "source": "/api/statut-couleurs",
+      "destination": "/api/reference?type=statut-couleurs"
+    },
+    {
+      "source": "/api/casernes",
+      "destination": "/api/reference?type=casernes"
+    },
+    {
+      "source": "/api/intervention-engins",
+      "destination": "/api/intervention-sub?resource=engins"
+    },
+    {
+      "source": "/api/intervention-services",
+      "destination": "/api/intervention-sub?resource=services"
+    },
+    {
+      "source": "/api/intervention-messages",
+      "destination": "/api/intervention-sub?resource=messages"
+    },
+    {
+      "source": "/api/planning-engins",
+      "destination": "/api/planning?resource=engins-jour"
+    }
+  ],
+  "functions": {
+    "api/intervention-sub.js": {
+      "includeFiles": "assets/fonts/**",
+      "maxDuration": 15
+    }
+  }
 }

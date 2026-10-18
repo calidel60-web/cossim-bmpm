@@ -52,22 +52,26 @@ centre ne supprime pas ses engins (ils passent « non affectés »).
 > L'ancienne version Netlify (`netlify/`, `public/`, `netlify.toml`) a été
 > retirée : seuls `index.html` + `api/` sont utilisés (Vercel).
 
-## Ordre de mission sur Discord
+## Ordre de mission sur Discord (fiche papier)
 
 Quand tu cliques sur **Diffuser l'engagement**, les engins sélectionnés sont engagés
-(statut « En route ») puis **un ordre de mission** est posté sur Discord : heure de
-validation, n° d'intervention, nature, adresse, requérant, informations, consignes,
-engins engagés (avec leur centre), services prévenus et opérateur. Le titre indique
-**« Premiers départs »** s'il n'y avait aucun engin engagé avant, sinon
-**« Engins complémentaires »** (renfort) et rappelle les engins déjà engagés. Chaque
-diffusion est aussi notée dans la main courante.
+(statut « En route ») puis l'**ordre de mission est envoyé sur Discord sous forme de
+fiche papier** (image PNG, d'après la « Procédure Rouge » BSPP) : titre
+« PREMIERS DÉPARTS - NATURE - » (ou « ENGINS COMPLÉMENTAIRES » en renfort), engin
+principal et adresse en gros, heure de validation, n° d'intervention, requérant, heure
+de décroché, informations requérants, consignes chefs d'agrès, engins complémentaires
+(et « déjà engagés » en renfort), services prévenus et opérateur. Chaque diffusion est
+aussi notée dans la main courante.
 
 1. Discord → paramètres du salon → **Intégrations → Webhooks → Nouveau webhook** → copier l'URL.
 2. Vercel → **Settings → Environment Variables** → ajouter `DISCORD_WEBHOOK_URL` = cette URL.
 3. **Redeploy** (les variables ne sont lues qu'au déploiement suivant).
 
-Aucune migration SQL. Si le webhook est absent ou en erreur, l'engagement est quand
-même effectué et un message d'alerte s'affiche. L'URL du webhook reste côté serveur.
+Aucune migration SQL. L'image est générée côté serveur (`api/_ordre-fiche.js`, polices
+Liberation Sans dans `assets/fonts/`, licence SIL OFL). Si la génération de l'image
+échoue, un message texte est envoyé à la place ; si le webhook est absent ou en erreur,
+l'engagement est quand même effectué et une alerte s'affiche. L'URL du webhook reste
+côté serveur.
 
 ## Lancer en local
 

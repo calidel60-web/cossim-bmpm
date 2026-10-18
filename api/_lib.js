@@ -287,6 +287,30 @@ async function envoyerOrdreDiscord({ intervention, nouveaux, autres, services, u
     }],
   };
 
+  // 1) Priorité : la fiche papier (image PNG) en pièce jointe.
+  try {
+    const { genererFicheOrdreMission } = require("./_ordre-fiche");
+    const png = await genererFicheOrdreMission({
+      intervention, nouveaux, autres, services, user,
+      dt: { validation: t, decroche: parisDateTime(new Date(intervention.created_at || Date.now())) },
+    });
+    const filename = `ordre-mission-${intervention.id}.png`;
+    const form = new FormData();
+    form.append("payload_json", JSON.stringify({
+      username: "CO BSPP",
+      allowed_mentions: { parse: [] },
+      content: `📄 **ORDRE DE MISSION — INTER n° ${intervention.id}** · ${premiers ? "Premiers départs" : "Engins complémentaires"}`,
+      attachments: [{ id: 0, filename }],
+    }));
+    form.append("files[0]", new Blob([png], { type: "image/png" }), filename);
+    const res = await fetch(url, { method: "POST", body: form, signal: AbortSignal.timeout(10000) });
+    if (res.ok) return "ok";
+    console.error("Échec webhook Discord (fiche) :", res.status, await res.text());
+  } catch (e) {
+    console.error("Génération/envoi de la fiche impossible, repli sur le message texte :", e.message);
+  }
+
+  // 2) Repli : message texte (embed) si l'image n'a pas pu être produite/envoyée.
   try {
     const res = await fetch(url, {
       method: "POST",
