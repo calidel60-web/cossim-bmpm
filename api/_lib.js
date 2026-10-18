@@ -193,18 +193,13 @@ async function envoyerOrdreMission(sql, intervention, engin, engagesAffichage) {
   const targetMatricule = affect[0] && affect[0].matricule;
   if (!targetMatricule) return;
 
-  const now = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  const lieu = [
-    [intervention.type_voie, intervention.adresse].filter(Boolean).join(" "),
-    intervention.commune,
-    intervention.arrondissement ? `(${intervention.arrondissement})` : null,
-  ].filter(Boolean).join(", ");
+  const t = parisDateTime();
+  const lieu = formatLieu(intervention);
 
   const missionData = {
-    date: `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`,
-    dateShort: `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${String(now.getFullYear()).slice(-2)}`,
-    time: `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
+    date: t.date,
+    dateShort: t.dateShort,
+    time: t.time,
     interNum: String(intervention.id),
     nature: intervention.motif || intervention.sinistre || "",
     engins: engagesAffichage.join(", "),
@@ -224,6 +219,92 @@ async function envoyerOrdreMission(sql, intervention, engin, engagesAffichage) {
   }
 }
 
+
+// Date/heure à Paris (les fonctions Vercel tournent en UTC).
+function parisDateTime(d = new Date()) {
+  const f = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+  });
+  const p = Object.fromEntries(f.formatToParts(d).map(x => [x.type, x.value]));
+  return {
+    date: `${p.day}/${p.month}/${p.year}`,
+    dateShort: `${p.day}/${p.month}/${p.year.slice(-2)}`,
+    time: `${p.hour}:${p.minute}:${p.second}`,
+  };
+}
+
+function formatLieu(intervention) {
+  return [
+    [intervention.type_voie, intervention.adresse].filter(Boolean).join(" "),
+    intervention.commune,
+    intervention.arrondissement ? `(${intervention.arrondissement})` : null,
+  ].filter(Boolean).join(", ");
+}
+
+function trunc(str, max) {
+  const t = String(str ?? "");
+  return t.length > max ? t.slice(0, max - 1) + "…" : t;
+}
+
+// Envoie l'ordre de mission sur Discord (webhook DISCORD_WEBHOOK_URL).
+// Retourne "ok" | "non_configure" | "echec". Ne lève jamais d'exception :
+// un souci Discord ne doit pas bloquer l'engagement.
+async function envoyerOrdreDiscord({ intervention, nouveaux, autres, services, user }) {
+  const url = process.env.DISCORD_WEBHOOK_URL;
+  if (!url) return "non_configure";
+
+  const premiers = autres.length === 0;
+  const t = parisDateTime();
+  const lieu = formatLieu(intervention) || "Adresse non renseignée";
+  const nature = intervention.motif || intervention.sinistre || "Nature non précisée";
+  const ligne = (e) => `• **${e.nom}**${e.caserne_nom ? ` — ${e.caserne_nom}` : ""}`;
+
+  const fields = [
+    { name: "🕒 Heure de validation", value: `${t.date} ${t.time}`, inline: true },
+    { name: "N° intervention", value: String(intervention.id), inline: true },
+    { name: premiers ? "🚒 Départ" : "🚒 Engins complémentaires",
+      value: trunc(nouveaux.map(ligne).join("\n"), 1024) },
+  ];
+  if (autres.length) fields.push({ name: "Déjà engagés", value: trunc(autres.map(e => e.nom).join(" ; "), 1024) });
+  if (intervention.appelant) fields.push({ name: "📞 Requérant", value: trunc(intervention.appelant, 1024), inline: true });
+  if (intervention.etare) fields.push({ name: "ETARE", value: trunc(intervention.etare, 1024), inline: true });
+  if (intervention.observation) fields.push({ name: "ℹ️ Informations requérant", value: trunc(intervention.observation, 1024) });
+  if (intervention.consignes) fields.push({ name: "Consignes", value: trunc(intervention.consignes, 1024) });
+  if (services.length) fields.push({ name: "Services prévenus", value: trunc(services.map(x => x.nom).join(" ; "), 1024) });
+  fields.push({ name: "Diffusé par", value: trunc(`${user.grade_code || ""} ${user.nom} (${user.matricule})`.trim(), 1024) });
+
+  const payload = {
+    username: "CO BSPP",
+    allowed_mentions: { parse: [] },
+    embeds: [{
+      title: trunc(`ORDRE DE MISSION — INTER n° ${intervention.id}`, 256),
+      description: trunc(`**${premiers ? "PREMIERS DÉPARTS" : "ENGINS COMPLÉMENTAIRES"} — ${String(nature).toUpperCase()}**\n📍 **${lieu}**`, 4096),
+      color: 0xC0272D,
+      fields,
+      footer: { text: "CO BSPP" },
+      timestamp: new Date().toISOString(),
+    }],
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      console.error("Échec webhook Discord :", res.status, await res.text());
+      return "echec";
+    }
+    return "ok";
+  } catch (e) {
+    console.error("Erreur réseau webhook Discord :", e.message);
+    return "echec";
+  }
+}
+
 const VEHICLE_STATUS_LABELS = {
   alerte: "Alerté", en_route: "En route", sur_les_lieux: "Sur les lieux",
   message: "Message", message_urgent: "Message Urgent", transport_ch: "Transport CH",
@@ -234,5 +315,5 @@ const VEHICLE_STATUS_LABELS = {
 module.exports = {
   sql, json, preflight, requireAuth, getBody, getBodySafe, getQuery,
   POSTES_PAR_CATEGORIE, buildEngagementMessage, logMessage, VEHICLE_STATUS_LABELS,
-  envoyerOrdreMission,
+  envoyerOrdreMission, envoyerOrdreDiscord,
 };

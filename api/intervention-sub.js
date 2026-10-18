@@ -2,7 +2,7 @@
 // intervention-messages en une seule fonction (limite Vercel Hobby).
 // Routage sur ?resource=engins|services|messages — voir vercel.json.
 const { sql, json, preflight, requireAuth, getBody, getQuery,
-        buildEngagementMessage, logMessage, VEHICLE_STATUS_LABELS, envoyerOrdreMission } = require("./_lib");
+        buildEngagementMessage, logMessage, VEHICLE_STATUS_LABELS, envoyerOrdreMission, envoyerOrdreDiscord } = require("./_lib");
 
 const EDIT_ROLES = ["operateur_cta", "admin"];
 
@@ -16,8 +16,9 @@ module.exports = async (req, res) => {
       case "engins": return await handleEngins(req, res);
       case "services": return await handleServices(req, res);
       case "messages": return await handleMessages(req, res);
+      case "ordre-mission": return await handleOrdreMission(req, res);
       default:
-        return json(res, 400, { error: "Paramètre resource manquant ou inconnu (engins, services, messages)." });
+        return json(res, 400, { error: "Paramètre resource manquant ou inconnu (engins, services, messages, ordre-mission)." });
     }
   } catch (e) {
     return json(res, e.statusCode || 500, { error: e.message || "Erreur serveur." });
@@ -192,4 +193,45 @@ async function handleMessages(req, res) {
   }
 
   return json(res, 405, { error: "Méthode non autorisée." });
+}
+
+/* ------------------------------------- ORDRE DE MISSION (Discord) ---- */
+// Appelé par "Diffuser l'engagement" une fois les engins engagés :
+// envoie UN ordre de mission pour le lot d'engins qui vient d'être diffusé.
+async function handleOrdreMission(req, res) {
+  if (req.method !== "POST") return json(res, 405, { error: "Méthode non autorisée." });
+  const user = requireAuth(req, EDIT_ROLES);
+  const body = getBody(req);
+  const intervention_id = Number(body.intervention_id);
+  const ids = (Array.isArray(body.engin_ids) ? body.engin_ids : []).map(Number).filter(Boolean);
+  if (!intervention_id || !ids.length) return json(res, 400, { error: "intervention_id et engin_ids requis." });
+
+  const interRows = await sql`SELECT * FROM interventions WHERE id = ${intervention_id}`;
+  if (!interRows[0]) return json(res, 404, { error: "Intervention introuvable." });
+
+  const engages = await sql`
+    SELECT e.id, e.nom, e.caserne AS caserne_nom
+    FROM intervention_engins ie
+    JOIN engins e ON e.id = ie.engin_id
+    WHERE ie.intervention_id = ${intervention_id}
+    ORDER BY ie.heure_engagement ASC, ie.id ASC
+  `;
+  const nouveaux = engages.filter(e => ids.includes(e.id));
+  const autres = engages.filter(e => !ids.includes(e.id));
+  if (!nouveaux.length) return json(res, 400, { error: "Aucun de ces engins n'est engagé sur cette intervention." });
+
+  const services = await sql`
+    SELECT s.nom FROM intervention_services isv
+    JOIN services_reference s ON s.id = isv.service_id
+    WHERE isv.intervention_id = ${intervention_id}
+    ORDER BY isv.heure_prevenu ASC
+  `;
+
+  const discord = await envoyerOrdreDiscord({ intervention: interRows[0], nouveaux, autres, services, user });
+
+  if (discord === "ok") {
+    await logMessage(sql, intervention_id, `CO ${user.nom}`,
+      `Ordre de mission diffusé (${autres.length ? "engins complémentaires" : "premiers départs"}) : ${nouveaux.map(e => e.nom).join(", ")}`);
+  }
+  return json(res, 200, { discord });
 }

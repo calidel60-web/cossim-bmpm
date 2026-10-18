@@ -1605,17 +1605,37 @@ document.getElementById("btnDiffuser").addEventListener("click", async () => {
     toast("Sélectionne au moins un engin avant de diffuser.", true);
     return;
   }
+  const btn = document.getElementById("btnDiffuser");
+  btn.disabled = true; // évite le double envoi
   try{
-    for (const engin_id of selectedEnginsForInter){
+    const ids = [...selectedEnginsForInter];
+    // Enregistre d'abord l'adresse/motif/observation pour qu'ils figurent sur l'ordre de mission.
+    try{ await saveInterventionFields(false); }catch(e){ /* on diffuse quand même */ }
+
+    for (const engin_id of ids){
       await api("/intervention-sub?resource=engins", { method: "POST", body: {
         intervention_id: state.currentInterventionId, engin_id
       }});
     }
-    const nb = selectedEnginsForInter.size;
     selectedEnginsForInter.clear();
+
+    // Ordre de mission → Discord (un seul message pour tout le lot)
+    let discord = "echec";
+    try{
+      const r = await api("/intervention-sub?resource=ordre-mission", { method: "POST", body: {
+        intervention_id: state.currentInterventionId, engin_ids: ids
+      }});
+      discord = r.discord;
+    }catch(e){ /* signalé ci-dessous */ }
+
     await loadIntervention();
-    toast(`${nb} engin${nb > 1 ? "s" : ""} diffusé${nb > 1 ? "s" : ""} en intervention (Départ / En route).`);
+    const nb = ids.length;
+    const base = `${nb} engin${nb > 1 ? "s" : ""} diffusé${nb > 1 ? "s" : ""} (Départ / En route).`;
+    if (discord === "ok") toast(base + " Ordre de mission envoyé sur Discord.");
+    else if (discord === "non_configure") toast(base + " Discord non configuré (DISCORD_WEBHOOK_URL manquante).", true);
+    else toast(base + " L'envoi de l'ordre de mission sur Discord a échoué.", true);
   }catch(err){ toast(err.message, true); }
+  finally{ updateDiffuserButton(); }
 });
 
 
