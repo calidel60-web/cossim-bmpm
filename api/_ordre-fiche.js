@@ -32,6 +32,10 @@ async function genererFicheOrdreMission({ intervention, nouveaux, autres, servic
 
   const premiers = autres.length === 0;
   const nature = String(intervention.motif || intervention.sinistre || "Nature non précisée");
+  // Motif "302 Personne blessée…" -> titre sans le code, ligne départ "302 - Personne blessée…"
+  const mm = nature.match(/^(\d{3,4})\s+(.+)$/);
+  const natureTitre = mm ? mm[2] : nature;
+  const natureLigne = mm ? `${mm[1]} - ${mm[2]}` : nature;
   const principal = nouveaux[0];
   const complementaires = nouveaux.slice(1);
 
@@ -53,7 +57,7 @@ async function genererFicheOrdreMission({ intervention, nouveaux, autres, servic
   },
     el({ alignItems: "center", fontSize: 14, fontWeight: 700, marginBottom: 8 }, "Mission BSPP - Procédure Rouge"),
     el({ border: "2px solid #000", padding: "7px 10px", alignItems: "center", fontSize: 25, fontWeight: 700, textAlign: "center", marginBottom: 16 },
-      `${premiers ? "PREMIERS DÉPARTS" : "ENGINS COMPLÉMENTAIRES"} - ${nature.toUpperCase()} -`),
+      `${premiers ? "PREMIERS DÉPARTS" : "ENGINS COMPLÉMENTAIRES"} - ${natureTitre.toUpperCase()} -`),
 
     el({ fontSize: 30, fontWeight: 700, marginBottom: 2 }, nomEngin(principal)),
     label("accès à l'intervention pour le moyen sélectionné (y compris zdi, multi-adressage etc) :", { fontSize: 13, marginBottom: 4 }),
@@ -64,7 +68,7 @@ async function genererFicheOrdreMission({ intervention, nouveaux, autres, servic
         row({}, label("heure de validation ode : ", { marginRight: 8 }), bold(validation)),
       ),
       ligne("n° intervention :", String(intervention.id).replace(/\B(?=(\d{3})+(?!\d))/g, " ")),
-      ligne(premiers ? "1er départ :" : "renfort :", nature),
+      ligne(premiers ? "1er départ :" : "renfort :", natureLigne),
       ligne("adresse d'intervention :", lieu),
       intervention.etare ? ligne("ETARE :", intervention.etare) : null,
       row({ justifyContent: "space-between", marginTop: 4 },
